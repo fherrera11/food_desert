@@ -1,0 +1,3651 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Restaurant Food Access / Food Desert Score</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ArcGIS Maps SDK for JavaScript 4.x AMD CDN. No ArcGIS API key used. -->
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.34/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.34/"></script>
+
+    <style>
+      html,
+      body,
+      #viewDiv {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      #viewDiv {
+        position: relative;
+      }
+
+      .top-ui {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        z-index: 30;
+        display: grid;
+        gap: 8px;
+        width: min(500px, calc(100vw - 28px));
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: 1fr auto auto auto auto auto;
+        gap: 6px;
+        background: white;
+        border-radius: 12px;
+        padding: 8px;
+        box-shadow: 0 4px 22px rgba(0, 0, 0, 0.28);
+      }
+
+      .compact-card {
+        display: none;
+        background: white;
+        border-radius: 12px;
+        padding: 10px 12px;
+        box-shadow: 0 4px 22px rgba(0, 0, 0, 0.25);
+      }
+
+      .compact-card.visible {
+        display: block;
+      }
+
+      .score-line {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .score-number {
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .score-label {
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .score-meta {
+        margin-top: 6px;
+        color: #555;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      input,
+      button,
+      select {
+        font: inherit;
+        box-sizing: border-box;
+      }
+
+      input[type="text"],
+      input[type="number"],
+      select {
+        width: 100%;
+        padding: 8px 9px;
+        border: 1px solid #c9c9c9;
+        border-radius: 9px;
+        font-size: 13px;
+        background: white;
+      }
+
+      input[type="range"] {
+        width: 100%;
+      }
+
+      button {
+        border: 0;
+        border-radius: 9px;
+        padding: 8px 10px;
+        cursor: pointer;
+        background: #1f6feb;
+        color: white;
+        font-weight: 800;
+        font-size: 13px;
+        min-width: 38px;
+      }
+
+      button.icon {
+        min-width: 38px;
+        padding: 8px;
+        font-size: 15px;
+      }
+
+      button.secondary {
+        background: #666;
+      }
+
+      button.danger {
+        background: #f0f2f5;
+        color: #991b1b;
+      }
+
+      button.danger:hover {
+        background: #fee2e2;
+      }
+
+      button.pin-active {
+        background: #d97706;
+      }
+
+      button.ghost {
+        background: #f0f2f5;
+        color: #222;
+      }
+
+      .drawer {
+        display: none;
+        background: white;
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 4px 22px rgba(0, 0, 0, 0.28);
+        max-height: calc(100vh - 150px);
+        overflow: auto;
+      }
+
+      .drawer.visible {
+        display: block;
+      }
+
+      .drawer h2 {
+        font-size: 16px;
+        margin: 0 0 8px;
+      }
+
+      .drawer h3 {
+        font-size: 14px;
+        margin: 14px 0 8px;
+      }
+
+      .muted {
+        color: #666;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .status {
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 9px;
+        background: #f5f5f5;
+        font-size: 12px;
+        line-height: 1.35;
+        white-space: pre-line;
+      }
+
+      .settings-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 800;
+        margin-bottom: 4px;
+      }
+
+      .weight-line {
+        display: grid;
+        grid-template-columns: 1fr 50px;
+        gap: 8px;
+        align-items: center;
+        margin-top: 8px;
+      }
+
+      .weight-value {
+        text-align: right;
+        color: #444;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .benchmark-wrap {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        gap: 10px;
+        align-items: center;
+      }
+
+      #benchmarkChart {
+        width: 250px;
+        height: 250px;
+        border: 1px solid #e3e3e3;
+        border-radius: 10px;
+        background: #fbfbfb;
+        touch-action: none;
+        user-select: none;
+      }
+
+      .benchmark-values {
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+      }
+
+      .benchmark-value-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 7px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 4px;
+      }
+
+      .benchmark-value-row.disabled {
+        opacity: 0.45;
+      }
+
+      .benchmark-value-row input[type="checkbox"] {
+        margin: 0;
+      }
+
+      .benchmark-value-row .axis-name {
+        min-width: 0;
+      }
+
+      .benchmark-value-row .axis-value {
+        text-align: right;
+      }
+
+      .score-benchmark {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #e8e8e8;
+      }
+
+      .range-filter-summary {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #e8e8e8;
+        font-size: 12px;
+        color: #444;
+        line-height: 1.4;
+      }
+
+      .range-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        align-items: end;
+      }
+
+      .slider-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .check-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 8px;
+      }
+
+      .check-row input {
+        margin: 0;
+      }
+
+      .range-value-pill {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 2px 8px;
+        background: #f3f4f6;
+        font-weight: 800;
+        color: #333;
+      }
+
+      .filter-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 14px 0 8px;
+      }
+
+      .filter-heading h3 {
+        margin: 0;
+      }
+
+      .filter-heading select {
+        width: auto;
+        min-width: 140px;
+      }
+
+      .one-track-slider {
+        display: grid;
+        gap: 8px;
+        margin-top: 6px;
+      }
+
+      .slider-readout {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12px;
+        font-weight: 800;
+        color: #333;
+      }
+
+      .slider-shell {
+        position: relative;
+        height: 36px;
+        display: flex;
+        align-items: center;
+      }
+
+      .slider-track {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 7px;
+        border-radius: 999px;
+        background: #d8c3ff;
+        z-index: 1;
+      }
+
+      .slider-fill {
+        position: absolute;
+        height: 7px;
+        border-radius: 999px;
+        background: #7c3aed;
+        z-index: 2;
+        box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.18);
+      }
+
+      .range-input {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        margin: 0;
+        appearance: none;
+        -webkit-appearance: none;
+        background: transparent;
+        pointer-events: none;
+        height: 36px;
+        z-index: 3;
+      }
+
+      .range-min {
+        z-index: 4;
+      }
+
+      .range-max {
+        z-index: 5;
+      }
+
+      .range-input::-webkit-slider-thumb {
+        appearance: none;
+        -webkit-appearance: none;
+        pointer-events: auto;
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        border: 2px solid #111;
+        background: #7c3aed;
+        cursor: grab;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      }
+
+      .range-input::-moz-range-thumb {
+        pointer-events: auto;
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        border: 2px solid #111;
+        background: #7c3aed;
+        cursor: grab;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      }
+
+      .range-input::-webkit-slider-runnable-track {
+        appearance: none;
+        -webkit-appearance: none;
+        background: transparent;
+        border: 0;
+      }
+
+      .range-input::-moz-range-track {
+        background: transparent;
+        border: 0;
+      }
+
+      .one-track-slider.exact .range-max {
+        display: none;
+      }
+
+      .slider-ticks {
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #555;
+        margin-top: -5px;
+      }
+
+      .slider-ticks span {
+        position: relative;
+        text-align: center;
+        min-width: 20px;
+      }
+
+      .slider-ticks span::before {
+        content: "";
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        width: 2px;
+        height: 5px;
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background: #7c3aed;
+        opacity: 0.45;
+      }
+
+      .benchmark-title-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: baseline;
+        font-size: 13px;
+      }
+
+      .benchmark-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .info-metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .metric {
+        background: #f7f7f7;
+        border: 1px solid #e4e4e4;
+        border-radius: 9px;
+        padding: 8px;
+        font-size: 12px;
+      }
+
+      .metric b {
+        display: block;
+        margin-top: 2px;
+        font-size: 15px;
+      }
+
+      .nearby-list {
+        margin-top: 8px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .nearby-item {
+        border: 1px solid #ddd;
+        border-radius: 9px;
+        padding: 8px;
+        font-size: 12px;
+        background: #fff;
+      }
+
+      .nearby-item.benchmark-match {
+        border-color: #8b5cf6;
+        background: #faf5ff;
+      }
+
+      .nearby-item.partial-benchmark-match {
+        border-color: #9ca3af;
+        background: #f9fafb;
+      }
+
+      .nearby-item b {
+        font-size: 13px;
+      }
+
+      .restaurant-search-card {
+        background: white;
+        border-radius: 12px;
+        padding: 8px;
+        box-shadow: 0 4px 22px rgba(0, 0, 0, 0.22);
+      }
+
+      .restaurant-search-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 6px;
+      }
+
+      .search-results {
+        display: none;
+        gap: 6px;
+        margin-top: 8px;
+        max-height: 260px;
+        overflow: auto;
+      }
+
+      .search-results.visible {
+        display: grid;
+      }
+
+      .search-result {
+        display: grid;
+        gap: 2px;
+        width: 100%;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 8px 9px;
+        background: #fff;
+        color: #111827;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .search-result:hover,
+      .search-result:focus {
+        border-color: #8b5cf6;
+        background: #faf5ff;
+        outline: none;
+      }
+
+      .search-result b {
+        font-size: 13px;
+      }
+
+      .search-result span {
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.3;
+      }
+
+      .search-empty {
+        padding: 8px 9px;
+        border-radius: 10px;
+        background: #f9fafb;
+        color: #6b7280;
+        font-size: 12px;
+      }
+
+      .popup-card {
+        display: grid;
+        gap: 10px;
+        min-width: 240px;
+        max-width: 320px;
+        font-size: 13px;
+        color: #222;
+      }
+
+      .popup-photo {
+        width: 100%;
+        max-height: 150px;
+        object-fit: cover;
+        border-radius: 12px;
+        background: #f3f4f6;
+      }
+
+      .popup-address {
+        color: #4b5563;
+        line-height: 1.35;
+      }
+
+      .popup-badge {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        border-radius: 999px;
+        padding: 4px 9px;
+        font-size: 12px;
+        font-weight: 800;
+        background: #f3f4f6;
+        color: #374151;
+      }
+
+      .popup-badge.full {
+        background: #faf5ff;
+        color: #6d28d9;
+        border: 1px solid #c084fc;
+      }
+
+      .popup-badge.partial {
+        background: #f3f4f6;
+        color: #4b5563;
+        border: 1px solid #9ca3af;
+      }
+
+      .popup-badge.none {
+        background: #fff7ed;
+        color: #9a3412;
+        border: 1px solid #fdba74;
+      }
+
+      .popup-kpi-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+      }
+
+      .popup-kpi {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 7px 8px;
+        background: #fff;
+      }
+
+      .popup-kpi span {
+        display: block;
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        margin-bottom: 2px;
+      }
+
+      .popup-kpi b {
+        font-size: 13px;
+      }
+
+      .popup-note {
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .popup-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .popup-link {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 6px 10px;
+        background: #1f6feb;
+        color: white !important;
+        text-decoration: none;
+        font-weight: 800;
+        font-size: 12px;
+      }
+
+      .popup-attribution {
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.25;
+        margin-top: -6px;
+      }
+
+      .legend {
+        display: grid;
+        gap: 5px;
+        font-size: 12px;
+        margin-top: 8px;
+      }
+
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(0, 0, 0, 0.25);
+        display: inline-block;
+      }
+
+      .good {
+        background: #00ff5a;
+      }
+      .satisfactory {
+        background: #ffe600;
+      }
+      .unknown {
+        background: #a0a0a0;
+      }
+      .nearby {
+        background: #ffe600;
+      }
+      .match {
+        background: #b446ff;
+      }
+      .partial-match {
+        background: #b4b4b4;
+      }
+
+      .divider {
+        height: 1px;
+        background: #e6e6e6;
+        margin: 12px 0;
+      }
+
+      .close-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+      }
+
+      a {
+        color: #1f6feb;
+      }
+
+      @media (max-width: 720px) {
+        .toolbar {
+          grid-template-columns: 1fr auto auto auto;
+        }
+
+        #removeSelectionButton {
+          grid-column: span 1;
+        }
+
+        #centerButton {
+          display: none;
+        }
+
+        .benchmark-wrap {
+          grid-template-columns: 1fr;
+        }
+
+        #benchmarkChart {
+          width: 100%;
+          max-width: 280px;
+          justify-self: center;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+
+    <div class="top-ui">
+      <div class="toolbar">
+        <input
+          id="locationInput"
+          type="text"
+          placeholder="Address, place, or lat/lon"
+          autocomplete="off"
+        />
+        <button id="searchButton" title="Find and analyze">Find</button>
+        <button id="centerButton" class="secondary" title="Analyze map center">
+          Center
+        </button>
+        <button id="pinButton" class="ghost icon" title="Drop pin mode">
+          📍
+        </button>
+        <button
+          id="removeSelectionButton"
+          class="danger"
+          title="Remove current selection"
+        >
+          Clear
+        </button>
+        <button id="settingsButton" class="ghost icon" title="Settings">
+          ⚙
+        </button>
+        <button id="infoButton" class="ghost icon" title="Info">i</button>
+      </div>
+
+      <div class="restaurant-search-card">
+        <div class="restaurant-search-row">
+          <input
+            id="restaurantSearchInput"
+            type="text"
+            placeholder="Search restaurants by name or address"
+            autocomplete="off"
+          />
+          <button
+            id="restaurantSearchButton"
+            class="secondary"
+            title="Search loaded restaurant data"
+          >
+            Search
+          </button>
+        </div>
+        <div
+          id="restaurantSearchResults"
+          class="search-results"
+          aria-live="polite"
+        ></div>
+      </div>
+
+      <div id="scoreCard" class="compact-card visible">
+        <div class="score-line">
+          <div>
+            <div class="muted">Food desert risk</div>
+            <div id="riskNumber" class="score-number">—</div>
+          </div>
+          <div id="riskLabel" class="score-label">Select a location</div>
+        </div>
+        <div id="scoreMeta" class="score-meta">
+          Use Find, Center, or 📍 drop pin.
+        </div>
+
+        <div id="scoreFilterSummary" class="range-filter-summary">
+          <b>Active range filters</b>
+          <div id="activeRangeSummary" class="muted" style="margin-top: 4px">
+            Radius 1 mi · Stars 3.0–4.5 · Inspection satisfactory–good · Price
+            any bucket
+          </div>
+        </div>
+      </div>
+
+      <div id="settingsDrawer" class="drawer">
+        <h2>Settings</h2>
+        <div class="muted">
+          Use direct range filters instead of weights or a radial graph. Drop a
+          pin, then adjust the radius and ranges to find matching food
+          locations.
+        </div>
+
+        <h3>Search radius and target</h3>
+        <div class="settings-grid">
+          <div>
+            <label for="radiusMiles"
+              >Radius miles:
+              <span id="radiusMilesValue" class="range-value-pill"
+                >1 mi</span
+              ></label
+            >
+            <input
+              id="radiusMiles"
+              type="range"
+              min="0.25"
+              max="2"
+              step="0.25"
+              value="1"
+            />
+          </div>
+          <div>
+            <label for="targetLocations">Target matching locations</label>
+            <input
+              id="targetLocations"
+              type="number"
+              min="1"
+              step="1"
+              value="8"
+            />
+          </div>
+        </div>
+
+        <div class="filter-heading">
+          <h3>Rating filter</h3>
+          <select id="ratingMode" title="Rating filter mode">
+            <option value="range" selected>Range</option>
+            <option value="exact">Exact match</option>
+          </select>
+        </div>
+        <div class="one-track-slider" id="ratingSlider">
+          <div class="slider-readout">
+            <span id="ratingLeftReadout">3.0★</span>
+            <span id="ratingRightReadout">4.5★</span>
+          </div>
+          <div class="slider-shell">
+            <div class="slider-track"></div>
+            <div class="slider-fill" id="ratingSliderFill"></div>
+            <input
+              id="ratingMin"
+              class="range-input range-min"
+              type="range"
+              min="0"
+              max="5"
+              step="0.5"
+              value="3"
+            />
+            <input
+              id="ratingMax"
+              class="range-input range-max"
+              type="range"
+              min="0"
+              max="5"
+              step="0.5"
+              value="4.5"
+            />
+          </div>
+          <div class="slider-ticks">
+            <span>0★</span><span>1★</span><span>2★</span><span>3★</span
+            ><span>4★</span><span>5★</span>
+          </div>
+        </div>
+        <label class="check-row">
+          <input id="allowUnknownRating" type="checkbox" checked />
+          Include unknown Google rating as partial matches
+        </label>
+
+        <div class="filter-heading">
+          <h3>Inspection filter</h3>
+          <select id="inspectionMode" title="Inspection filter mode">
+            <option value="range" selected>Range</option>
+            <option value="exact">Exact match</option>
+          </select>
+        </div>
+        <div class="one-track-slider" id="inspectionSlider">
+          <div class="slider-readout">
+            <span id="inspectionLeftReadout">1 Satisfactory</span>
+            <span id="inspectionRightReadout">2 Good</span>
+          </div>
+          <div class="slider-shell">
+            <div class="slider-track"></div>
+            <div class="slider-fill" id="inspectionSliderFill"></div>
+            <input
+              id="inspectionMin"
+              class="range-input range-min"
+              type="range"
+              min="0"
+              max="2"
+              step="1"
+              value="1"
+            />
+            <input
+              id="inspectionMax"
+              class="range-input range-max"
+              type="range"
+              min="0"
+              max="2"
+              step="1"
+              value="2"
+            />
+          </div>
+          <div class="slider-ticks">
+            <span>0<br />Unsat.</span><span>1<br />Sat.</span
+            ><span>2<br />Good</span>
+          </div>
+        </div>
+
+        <div class="filter-heading">
+          <h3>Price filter</h3>
+          <select id="priceMode" title="Price filter mode">
+            <option value="range" selected>Range</option>
+            <option value="exact">Exact match</option>
+          </select>
+        </div>
+        <div class="one-track-slider" id="priceSlider">
+          <div class="slider-readout">
+            <span id="priceLeftReadout">$0–9</span>
+            <span id="priceRightReadout">$20+</span>
+          </div>
+          <div class="slider-shell">
+            <div class="slider-track"></div>
+            <div class="slider-fill" id="priceSliderFill"></div>
+            <input
+              id="priceMin"
+              class="range-input range-min"
+              type="range"
+              min="0"
+              max="20"
+              step="10"
+              value="0"
+            />
+            <input
+              id="priceMax"
+              class="range-input range-max"
+              type="range"
+              min="0"
+              max="20"
+              step="10"
+              value="20"
+            />
+          </div>
+          <div class="slider-ticks">
+            <span>$0–9</span><span>$10–19</span><span>$20+</span>
+          </div>
+        </div>
+        <label class="check-row">
+          <input id="allowUnknownPrice" type="checkbox" checked />
+          Include unavailable price as partial matches
+        </label>
+        <div class="muted" style="margin-top: 12px">
+          Purple markers satisfy every selected range. Gray markers are partial
+          matches with an allowed unknown value, such as missing price or Google
+          rating.
+        </div>
+
+        <div class="close-row">
+          <button id="closeSettingsButton" class="secondary">Close</button>
+        </div>
+      </div>
+
+      <div id="infoDrawer" class="drawer">
+        <h2>Info</h2>
+        <div id="status" class="status">Initializing...</div>
+
+        <h3>Latest analysis</h3>
+        <div class="info-metrics">
+          <div class="metric">Nearby locations <b id="nearbyCount">—</b></div>
+          <div class="metric">
+            Range matches <b id="benchmarkMatchCount">—</b>
+          </div>
+          <div class="metric">Access score <b id="accessScore">—</b></div>
+          <div class="metric">
+            Avg. inspection <b id="inspectionScore">—</b>
+          </div>
+          <div class="metric">Avg. price <b id="avgPrice">—</b></div>
+          <div class="metric">Avg. Google rating <b id="avgRating">—</b></div>
+          <div class="metric">Match equivalent <b id="weightedCount">—</b></div>
+          <div class="metric">
+            Avg. benchmark gap <b id="avgProfileDiff">—</b>
+          </div>
+        </div>
+
+        <h3>Nearest locations in radius</h3>
+        <div id="nearbyList" class="nearby-list muted">No analysis yet.</div>
+
+        <h3>Legend</h3>
+        <div class="legend">
+          <div class="legend-row">
+            <span class="dot good"></span><span>quality_score 2 = Good</span>
+          </div>
+          <div class="legend-row">
+            <span class="dot satisfactory"></span
+            ><span>quality_score 1 = Satisfactory</span>
+          </div>
+          <div class="legend-row">
+            <span class="dot unknown"></span
+            ><span>quality_score 0 = Unsatisfactory / missing</span>
+          </div>
+          <div class="legend-row">
+            <span class="dot nearby"></span
+            ><span
+              >Solid green/yellow/gray = inside radius but not a full range
+              match</span
+            >
+          </div>
+          <div class="legend-row">
+            <span class="dot match"></span
+            ><span>Purple solid circle = full range match</span>
+          </div>
+          <div class="legend-row">
+            <span class="dot partial-match"></span
+            ><span
+              >Partial unknown match = solid gray, listed with disclaimer</span
+            >
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="muted">
+          This is a custom food-access score, not an official USDA food desert
+          classification. Higher risk means fewer benchmark-matching food
+          locations near the selected point. Range filters control the scoring
+          model directly. Full matches satisfy every selected range and appear
+          solid purple. Partial matches satisfy all known ranges but have an
+          allowed unknown value, usually missing price or Google rating; they
+          appear solid gray and are flagged in the list.
+        </div>
+
+        <div class="close-row">
+          <button id="closeInfoButton" class="secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const DATA_URL = "./restaurant_data.json";
+      const DEFAULT_CENTER = [-120.482967, 37.302163];
+      const DEFAULT_ZOOM = 12;
+
+      // If ./pin.png exists next to this HTML file, the selected point and hover preview will use it.
+      // If it does not exist or fails to load, the app automatically falls back to simple red dots.
+      const USE_LOCAL_PIN_IMAGE = true;
+      const LOCAL_PIN_IMAGE_URL = "./pin.png";
+      let localPinImageAvailable = false;
+
+      const BENCHMARK_METRICS = [
+        {
+          key: "distanceMiles",
+          label: "Distance",
+          shortLabel: "Miles",
+          min: 0,
+          max: 2,
+          step: 0.25,
+          matchStep: 0.25,
+          defaultValue: 0.75,
+          unit: "mi",
+        },
+        {
+          key: "inspectionRaw",
+          label: "Inspection",
+          shortLabel: "Inspect",
+          min: 0,
+          max: 2,
+          step: 1,
+          matchStep: 1,
+          defaultValue: 2,
+          unit: "/2",
+        },
+        {
+          key: "ratingStars",
+          label: "Google stars",
+          shortLabel: "Stars",
+          min: 0,
+          max: 5,
+          step: 0.5,
+          matchStep: 1,
+          defaultValue: 4,
+          unit: "★",
+        },
+        {
+          key: "priceDollars",
+          label: "Price bucket",
+          shortLabel: "Price",
+          min: 0,
+          max: 20,
+          step: 10,
+          matchStep: 10,
+          defaultValue: 10,
+          prefix: "$",
+        },
+      ];
+
+      let view = null;
+      let Graphic = null;
+      let restaurantLayer = null;
+      let highlightLayer = null;
+      let benchmarkLayer = null;
+      let analysisLayer = null;
+      let cursorLayer = null;
+      let restaurants = [];
+      let currentAnalysisPoint = null;
+      let dropPinMode = false;
+      let lastAnalysisResult = null;
+      let dragMetricKey = null;
+      let benchmarkTargets = Object.fromEntries(
+        BENCHMARK_METRICS.map((metric) => [metric.key, metric.defaultValue]),
+      );
+      let benchmarkEnabled = Object.fromEntries(
+        BENCHMARK_METRICS.map((metric) => [metric.key, true]),
+      );
+      let nearbyAverageProfile = null;
+
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/GraphicsLayer",
+        "esri/Graphic",
+      ], function (Map, MapView, GraphicsLayer, GraphicClass) {
+        Graphic = GraphicClass;
+
+        restaurantLayer = new GraphicsLayer({ title: "Restaurant locations" });
+        highlightLayer = new GraphicsLayer({
+          title: "Nearby highlighted locations",
+        });
+        benchmarkLayer = new GraphicsLayer({
+          title: "Benchmark matching locations",
+        });
+        analysisLayer = new GraphicsLayer({
+          title: "Analysis point and radius",
+        });
+        cursorLayer = new GraphicsLayer({ title: "Drop pin cursor" });
+
+        const map = new Map({
+          basemap: "satellite",
+          layers: [
+            restaurantLayer,
+            highlightLayer,
+            benchmarkLayer,
+            analysisLayer,
+            cursorLayer,
+          ],
+        });
+
+        view = new MapView({
+          container: "viewDiv",
+          map,
+          center: DEFAULT_CENTER,
+          zoom: DEFAULT_ZOOM,
+          popup: { dockEnabled: false },
+        });
+
+        view.when(async () => {
+          preloadLocalPinImage();
+          bindUiEvents();
+          updateRangeFilterSummary();
+          await loadRestaurantJson();
+
+          view.on("click", (event) => {
+            if (!dropPinMode || !event.mapPoint) return;
+            setAnalysisPoint(
+              event.mapPoint.latitude,
+              event.mapPoint.longitude,
+              "Dropped pin",
+            );
+            setDropPinMode(false);
+          });
+
+          view.on("pointer-move", (event) => {
+            updateCursorPinFromPointer(event);
+          });
+
+          view.on("pointer-leave", () => {
+            clearCursorPin();
+          });
+        });
+      });
+
+      function bindUiEvents() {
+        document
+          .getElementById("searchButton")
+          .addEventListener("click", handleLocationSearch);
+        document
+          .getElementById("removeSelectionButton")
+          .addEventListener("click", clearAnalysisSelection);
+        document
+          .getElementById("restaurantSearchButton")
+          .addEventListener("click", handleRestaurantSearch);
+        document
+          .getElementById("restaurantSearchInput")
+          .addEventListener("input", handleRestaurantSearchPreview);
+        document
+          .getElementById("restaurantSearchInput")
+          .addEventListener("keydown", handleRestaurantSearchKeydown);
+        document
+          .getElementById("centerButton")
+          .addEventListener("click", () => {
+            if (!view || !view.center) return;
+            setAnalysisPoint(
+              view.center.latitude,
+              view.center.longitude,
+              "Map center",
+            );
+          });
+        document
+          .getElementById("pinButton")
+          .addEventListener("click", () => setDropPinMode(!dropPinMode));
+        document
+          .getElementById("settingsButton")
+          .addEventListener("click", () => toggleDrawer("settingsDrawer"));
+        document
+          .getElementById("infoButton")
+          .addEventListener("click", () => toggleDrawer("infoDrawer"));
+        document
+          .getElementById("closeSettingsButton")
+          .addEventListener("click", () => hideDrawer("settingsDrawer"));
+        document
+          .getElementById("closeInfoButton")
+          .addEventListener("click", () => hideDrawer("infoDrawer"));
+        const resetBenchmarkButton = document.getElementById(
+          "resetBenchmarkButton",
+        );
+        if (resetBenchmarkButton) {
+          resetBenchmarkButton.addEventListener("click", resetBenchmarkTargets);
+        }
+        document
+          .getElementById("locationInput")
+          .addEventListener("keydown", (event) => {
+            if (event.key === "Enter") handleLocationSearch();
+          });
+
+        const optionIds = [
+          "radiusMiles",
+          "targetLocations",
+          "ratingMode",
+          "ratingMin",
+          "ratingMax",
+          "allowUnknownRating",
+          "inspectionMode",
+          "inspectionMin",
+          "inspectionMax",
+          "priceMode",
+          "priceMin",
+          "priceMax",
+          "allowUnknownPrice",
+        ];
+
+        optionIds.forEach((id) => {
+          const element = document.getElementById(id);
+          if (!element) return;
+
+          const handler = () => {
+            normalizeFilterInputs(id);
+            updateRangeFilterSummary();
+            if (currentAnalysisPoint) analyzeCurrentPoint();
+          };
+
+          element.addEventListener("input", handler);
+          element.addEventListener("change", handler);
+        });
+
+        const svg = document.getElementById("benchmarkChart");
+        if (svg) {
+          svg.addEventListener("pointermove", handleBenchmarkPointerMove);
+          svg.addEventListener("pointerup", stopBenchmarkDrag);
+          svg.addEventListener("pointerleave", stopBenchmarkDrag);
+          svg.addEventListener("pointercancel", stopBenchmarkDrag);
+        }
+
+        updateRangeFilterSummary();
+      }
+
+      function toggleDrawer(id) {
+        const drawer = document.getElementById(id);
+        const otherId =
+          id === "settingsDrawer" ? "infoDrawer" : "settingsDrawer";
+        hideDrawer(otherId);
+        drawer.classList.toggle("visible");
+      }
+
+      function hideDrawer(id) {
+        document.getElementById(id).classList.remove("visible");
+      }
+
+      function setDropPinMode(enabled) {
+        dropPinMode = enabled;
+        const button = document.getElementById("pinButton");
+        button.classList.toggle("pin-active", enabled);
+        button.classList.toggle("ghost", !enabled);
+        if (view) view.container.style.cursor = enabled ? "none" : "default";
+        if (!enabled) clearCursorPin();
+        if (enabled)
+          setStatus(
+            "Drop pin mode is on. Move the mouse over the map, then click to drop the pin.",
+          );
+        else if (!currentAnalysisPoint)
+          setStatus("Drop pin mode is off. Use Find, Center, or 📍 drop pin.");
+      }
+
+      function updateCursorPinFromPointer(event) {
+        if (!dropPinMode || !view || !cursorLayer) return;
+        const mapPoint = view.toMap({ x: event.x, y: event.y });
+        if (
+          !mapPoint ||
+          !Number.isFinite(mapPoint.longitude) ||
+          !Number.isFinite(mapPoint.latitude)
+        )
+          return;
+        cursorLayer.removeAll();
+        cursorLayer.add(
+          new Graphic({
+            geometry: {
+              type: "point",
+              longitude: mapPoint.longitude,
+              latitude: mapPoint.latitude,
+              spatialReference: { wkid: 4326 },
+            },
+            symbol: dropPinCursorSymbol(),
+          }),
+        );
+      }
+
+      function clearCursorPin() {
+        if (cursorLayer) cursorLayer.removeAll();
+      }
+
+      function syncWeightLabels() {
+        // Legacy no-op. Range filters now control the scoring model directly.
+        updateRangeFilterSummary();
+      }
+
+      function updateRangeFilterSummary() {
+        const radiusValue = document.getElementById("radiusMilesValue");
+        const summary = document.getElementById("activeRangeSummary");
+        const options = getScoringOptions();
+
+        if (radiusValue)
+          radiusValue.textContent = `${formatMiles(options.radiusMiles)} mi`;
+
+        syncOneTrackSlider(
+          "rating",
+          options.ratingMode,
+          options.ratingMin,
+          options.ratingMax,
+          0,
+          5,
+          formatStars,
+        );
+        syncOneTrackSlider(
+          "inspection",
+          options.inspectionMode,
+          options.inspectionMin,
+          options.inspectionMax,
+          0,
+          2,
+          formatInspectionValue,
+        );
+        syncOneTrackSlider(
+          "price",
+          options.priceMode,
+          options.priceMin,
+          options.priceMax,
+          0,
+          20,
+          priceBucketLabel,
+        );
+
+        if (summary) {
+          summary.textContent =
+            `Radius ${formatMiles(options.radiusMiles)} mi · ` +
+            `Stars ${formatFilterSummary(options.ratingMode, options.ratingMin, options.ratingMax, formatStars)} · ` +
+            `Inspection ${formatFilterSummary(options.inspectionMode, options.inspectionMin, options.inspectionMax, formatInspectionValue)} · ` +
+            `Price ${formatFilterSummary(options.priceMode, options.priceMin, options.priceMax, priceBucketLabel)}`;
+        }
+      }
+
+      function normalizeFilterInputs(changedId) {
+        const groups = [
+          { prefix: "rating", step: 0.5, minAllowed: 0, maxAllowed: 5 },
+          { prefix: "inspection", step: 1, minAllowed: 0, maxAllowed: 2 },
+          { prefix: "price", step: 10, minAllowed: 0, maxAllowed: 20 },
+        ];
+
+        groups.forEach(({ prefix, step, minAllowed, maxAllowed }) => {
+          const mode =
+            document.getElementById(`${prefix}Mode`)?.value || "range";
+          const minInput = document.getElementById(`${prefix}Min`);
+          const maxInput = document.getElementById(`${prefix}Max`);
+          if (!minInput || !maxInput) return;
+
+          let minValue = parseNumber(minInput.value) ?? minAllowed;
+          let maxValue = parseNumber(maxInput.value) ?? maxAllowed;
+
+          minValue = clamp(minValue, minAllowed, maxAllowed);
+          maxValue = clamp(maxValue, minAllowed, maxAllowed);
+
+          if (mode === "exact") {
+            if (changedId === `${prefix}Max`) {
+              minInput.value = maxValue;
+            } else {
+              maxInput.value = minValue;
+            }
+            return;
+          }
+
+          // Range mode: do not allow endpoints to overlap.
+          if (maxValue - minValue < step) {
+            if (changedId === `${prefix}Min`) {
+              minValue = clamp(maxValue - step, minAllowed, maxAllowed - step);
+              minInput.value = minValue;
+            } else {
+              maxValue = clamp(minValue + step, minAllowed + step, maxAllowed);
+              maxInput.value = maxValue;
+            }
+          }
+
+          minValue = parseNumber(minInput.value) ?? minAllowed;
+          maxValue = parseNumber(maxInput.value) ?? maxAllowed;
+
+          if (maxValue - minValue < step) {
+            if (minValue <= minAllowed) {
+              maxInput.value = minAllowed + step;
+            } else {
+              minInput.value = maxAllowed - step;
+            }
+          }
+        });
+      }
+
+      function syncOneTrackSlider(
+        prefix,
+        mode,
+        minValue,
+        maxValue,
+        axisMin,
+        axisMax,
+        formatter,
+      ) {
+        const slider = document.getElementById(`${prefix}Slider`);
+        const fill = document.getElementById(`${prefix}SliderFill`);
+        const leftReadout = document.getElementById(`${prefix}LeftReadout`);
+        const rightReadout = document.getElementById(`${prefix}RightReadout`);
+        const maxInput = document.getElementById(`${prefix}Max`);
+
+        if (!slider || !fill) return;
+
+        slider.classList.toggle("exact", mode === "exact");
+
+        const safeMin = clamp(minValue, axisMin, axisMax);
+        const safeMax = clamp(maxValue, axisMin, axisMax);
+        const leftPercent = ((safeMin - axisMin) / (axisMax - axisMin)) * 100;
+        const rightPercent = ((safeMax - axisMin) / (axisMax - axisMin)) * 100;
+
+        if (mode === "exact") {
+          const dotWidth = 2.5;
+          fill.style.left = `${clamp(leftPercent - dotWidth / 2, 0, 100)}%`;
+          fill.style.width = `${dotWidth}%`;
+          if (leftReadout)
+            leftReadout.textContent = `Exact ${formatter(safeMin)}`;
+          if (rightReadout) rightReadout.textContent = "";
+          if (maxInput) maxInput.value = safeMin;
+        } else {
+          fill.style.left = `${Math.min(leftPercent, rightPercent)}%`;
+          fill.style.width = `${Math.abs(rightPercent - leftPercent)}%`;
+          if (leftReadout) leftReadout.textContent = formatter(safeMin);
+          if (rightReadout) rightReadout.textContent = formatter(safeMax);
+        }
+      }
+
+      function formatFilterSummary(mode, minValue, maxValue, formatter) {
+        if (mode === "exact") return `exact ${formatter(minValue)}`;
+        return `${formatter(minValue)}–${formatter(maxValue)}`;
+      }
+
+      function formatStars(value) {
+        const numeric = parseNumber(value) ?? 0;
+        return `${numeric.toFixed(1)}★`;
+      }
+
+      function formatInspectionValue(value) {
+        const numeric = parseNumber(value) ?? 0;
+        if (numeric >= 2) return "2 Good";
+        if (numeric >= 1) return "1 Satisfactory";
+        return "0 Unsatisfactory";
+      }
+
+      function formatMiles(value) {
+        const numeric = parseNumber(value) ?? 0;
+        return numeric % 1 === 0
+          ? numeric.toFixed(0)
+          : numeric.toFixed(2).replace(/0$/, "");
+      }
+
+      function inspectionRangeLabel(minValue, maxValue) {
+        const label = (value) => {
+          if (value >= 2) return "good";
+          if (value >= 1) return "satisfactory";
+          return "unsatisfactory";
+        };
+        return `${label(minValue)}–${label(maxValue)}`;
+      }
+
+      async function loadRestaurantJson() {
+        setStatus(`Loading ${DATA_URL}...`);
+        try {
+          const response = await fetch(DATA_URL, { cache: "no-store" });
+          if (!response.ok)
+            throw new Error(
+              `Could not load ${DATA_URL}. HTTP ${response.status}`,
+            );
+          const data = await response.json();
+          restaurants = normalizeRestaurantData(data);
+          drawRestaurantPoints(restaurants);
+          setStatus(
+            `Loaded ${restaurants.length} mappable locations from restaurant_data.json.\nUse Find, Center, or 📍 drop pin to calculate a score. When drop-pin mode is active, a pin follows your mouse.`,
+          );
+          if (restaurants.length > 0 && restaurantLayer.graphics.length > 0) {
+            view.goTo(restaurantLayer.graphics.toArray()).catch((error) => {
+              if (error.name !== "AbortError") console.error(error);
+            });
+          }
+        } catch (error) {
+          console.error(error);
+          setStatus(
+            "Failed to load restaurant_data.json from the same folder.\n" +
+              "Make sure Live Server is running and restaurant_data.json is next to this HTML file.\n\n" +
+              error.message,
+          );
+        }
+      }
+
+      function normalizeRestaurantData(data) {
+        const rawFeatures = Array.isArray(data)
+          ? data
+          : Array.isArray(data.features)
+            ? data.features
+            : [];
+        const output = [];
+
+        rawFeatures.forEach((item, index) => {
+          const geometry = item.geometry || {};
+          const attributes = {
+            ...(item.properties || {}),
+            ...(item.attributes || {}),
+          };
+          if (!item.properties && !item.attributes)
+            Object.assign(attributes, item);
+
+          const lon = firstValidNumber([
+            geometry.longitude,
+            geometry.x,
+            Array.isArray(geometry.coordinates)
+              ? geometry.coordinates[0]
+              : null,
+            attributes.longitude,
+            attributes.lon,
+            attributes.lng,
+            attributes.X,
+            attributes.x,
+            attributes.DisplayX,
+            attributes.displayx,
+          ]);
+
+          const lat = firstValidNumber([
+            geometry.latitude,
+            geometry.y,
+            Array.isArray(geometry.coordinates)
+              ? geometry.coordinates[1]
+              : null,
+            attributes.latitude,
+            attributes.lat,
+            attributes.Y,
+            attributes.y,
+            attributes.DisplayY,
+            attributes.displayy,
+          ]);
+
+          if (!isValidLonLat(lon, lat)) return;
+          const normalized = normalizeAttributes(attributes, index);
+          output.push({
+            id: normalized.id,
+            searchIndex: output.length,
+            lon,
+            lat,
+            attributes: normalized,
+          });
+        });
+
+        return output;
+      }
+
+      function normalizeAttributes(attributes, index) {
+        const get = (...names) => getField(attributes, names);
+        const qualityScore = clean(
+          get(
+            "quality_score",
+            "quality score",
+            "Quality_score",
+            "QUALITY_SCORE",
+          ),
+        );
+        const normalized = {
+          objectid: index + 1,
+          id:
+            clean(get("id", "google_place_id", "PlaceID")) ||
+            `restaurant-${index + 1}`,
+          Match_addr: clean(get("Match_addr", "match_addr")),
+          Postal: clean(get("Postal", "postal")),
+          X: clean(get("X", "x")),
+          Y: clean(get("Y", "y")),
+          USER_facility: clean(get("USER_facility", "facility", "Facility")),
+          USER_current_rating: clean(
+            get("USER_current_rating", "USER_current rating", "current_rating"),
+          ),
+          USER_last_inspection_date: clean(
+            get(
+              "USER_last_inspection_date",
+              "USER_last inspection date",
+              "last_inspection_date",
+            ),
+          ),
+          quality_score: qualityScore,
+          quality_label:
+            clean(get("quality_label")) || qualityLabelFromScore(qualityScore),
+          google_status: clean(get("google_status")),
+          google_place_id: clean(get("google_place_id")),
+          google_name: clean(get("google_name")),
+          google_address: clean(get("google_address")),
+          google_lat: clean(get("google_lat")),
+          google_lng: clean(get("google_lng")),
+          google_rating: clean(get("google_rating")),
+          google_review_count: clean(get("google_review_count")),
+          google_price_label: clean(
+            get("google_price_label", "google_price_bucket"),
+          ),
+          google_price_level: clean(get("google_price_level")),
+          google_price_range_start: clean(get("google_price_range_start")),
+          google_price_range_end: clean(get("google_price_range_end")),
+          google_maps_uri: clean(get("google_maps_uri")),
+          google_search_query: clean(get("google_search_query")),
+          google_error: clean(get("google_error")),
+          google_photo_uri: clean(get("google_photo_uri")),
+          google_photo_name: clean(get("google_photo_name")),
+          google_photo_author_attributions: formatPhotoAttribution(
+            get("google_photo_author_attributions"),
+          ),
+        };
+        if (!normalized.USER_facility)
+          normalized.USER_facility =
+            normalized.google_name || "Unnamed food location";
+        normalized.popup_title =
+          normalized.google_name ||
+          normalized.USER_facility ||
+          "Unnamed food location";
+        return normalized;
+      }
+
+      function drawRestaurantPoints(items) {
+        restaurantLayer.removeAll();
+        const graphics = items.map((item) => {
+          const graphic = new Graphic({
+            geometry: {
+              type: "point",
+              longitude: item.lon,
+              latitude: item.lat,
+              spatialReference: { wkid: 4326 },
+            },
+            symbol: baseRestaurantSymbol(item.attributes.quality_score),
+            attributes: item.attributes,
+            popupTemplate: buildRestaurantPopupTemplate(),
+          });
+          item.graphic = graphic;
+          return graphic;
+        });
+        restaurantLayer.addMany(graphics);
+      }
+
+      function buildRestaurantPopupTemplate() {
+        return {
+          title: "{popup_title}",
+          outFields: ["*"],
+          content: restaurantPopupContent,
+        };
+      }
+
+      function restaurantPopupContent(event) {
+        const attributes =
+          event?.graphic?.attributes || event?.attributes || {};
+        return buildRestaurantPopupHtml(attributes);
+      }
+
+      function buildRestaurantPopupHtml(attributes) {
+        const a = attributes || {};
+        const name = clean(
+          a.google_name || a.USER_facility || "Unnamed food location",
+        );
+        const address = clean(a.google_address || a.Match_addr || "");
+        const sourceAddress = clean(a.Match_addr || "");
+        const mapsLink = clean(a.google_maps_uri || "");
+        const photoUri = clean(a.google_photo_uri || "");
+        const photoAttribution = clean(
+          a.google_photo_author_attributions || "",
+        );
+        const inspection =
+          qualityLabelFromScore(a.quality_score) ||
+          clean(a.quality_label || a.USER_current_rating) ||
+          "Unknown";
+        const lastInspection = clean(a.USER_last_inspection_date || "");
+        const rating = clean(a.google_rating || "");
+        const reviews = clean(a.google_review_count || "");
+        const price = clean(
+          a.google_price_label || a.google_price_bucket || "",
+        );
+        const distance = clean(a.popup_distance_miles || "");
+        const matchType = clean(a.benchmark_match_type || "");
+        const confidence = clean(a.benchmark_confidence_note || "");
+        const matchBadge = popupMatchBadge(matchType, confidence);
+        const metrics = [
+          popupMetric("Distance", distance ? `${distance} mi` : ""),
+          popupMetric("Inspection", inspection),
+          popupMetric(
+            "Google",
+            rating
+              ? `${rating}★${reviews ? ` · ${reviews} reviews` : ""}`
+              : "Not available",
+          ),
+          popupMetric("Price", price || "Not available"),
+        ]
+          .filter(Boolean)
+          .join("");
+        const sourceNote =
+          sourceAddress &&
+          address &&
+          sourceAddress.toLowerCase() !== address.toLowerCase()
+            ? `<div class="popup-note"><b>Source address:</b> ${escapeHtml(sourceAddress)}</div>`
+            : "";
+        const inspectionNote = lastInspection
+          ? `<div class="popup-note"><b>Last inspection:</b> ${escapeHtml(lastInspection)}</div>`
+          : "";
+        const photo = photoUri
+          ? `<img class="popup-photo" src="${escapeHtml(photoUri)}" alt="Photo of ${escapeHtml(name)}" />`
+          : "";
+        const attribution = photoAttribution
+          ? `<div class="popup-attribution">${escapeHtml(photoAttribution)}</div>`
+          : "";
+        const actions = mapsLink
+          ? `<div class="popup-actions"><a class="popup-link" href="${escapeHtml(mapsLink)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a></div>`
+          : "";
+
+        return `
+          <div class="popup-card">
+            ${photo}
+            ${attribution}
+            ${address ? `<div class="popup-address">${escapeHtml(address)}</div>` : ""}
+            ${matchBadge}
+            <div class="popup-kpi-grid">${metrics}</div>
+            ${inspectionNote}
+            ${sourceNote}
+            ${actions}
+          </div>
+        `;
+      }
+
+      function popupMetric(label, value) {
+        if (!clean(value)) return "";
+        return `<div class="popup-kpi"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`;
+      }
+
+      function popupMatchBadge(matchType, confidence) {
+        if (!matchType) return "";
+        if (matchType === "full") {
+          return `<div class="popup-badge full">Full match for current filters</div>`;
+        }
+        if (matchType === "partial") {
+          const note = confidence ? ` · ${confidence}` : "";
+          return `<div class="popup-badge partial">Partial match${escapeHtml(note)}</div>`;
+        }
+        return `<div class="popup-badge none">Does not match current filters</div>`;
+      }
+
+      function handleRestaurantSearchPreview() {
+        const query = document
+          .getElementById("restaurantSearchInput")
+          .value.trim();
+        renderRestaurantSearchResults(query, findRestaurantMatches(query, 8));
+      }
+
+      function handleRestaurantSearchKeydown(event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          handleRestaurantSearch();
+        }
+        if (event.key === "Escape") {
+          hideRestaurantSearchResults();
+        }
+      }
+
+      function handleRestaurantSearch() {
+        const input = document.getElementById("restaurantSearchInput");
+        const query = input.value.trim();
+        const matches = findRestaurantMatches(query, 10);
+        renderRestaurantSearchResults(query, matches);
+
+        if (!query) {
+          setStatus(
+            "Enter a restaurant name or address to search the loaded data.",
+          );
+          return;
+        }
+
+        if (matches.length === 0) {
+          setStatus(`No loaded restaurant matched: ${query}`);
+          return;
+        }
+
+        if (matches.length === 1) {
+          selectRestaurantSearchResult(matches[0].searchIndex);
+          return;
+        }
+
+        setStatus(
+          `Found ${matches.length} loaded restaurant matches for: ${query}\nSelect one from the search results.`,
+        );
+      }
+
+      function findRestaurantMatches(query, limit = 8) {
+        const normalizedQuery = normalizeSearchText(query);
+        if (!normalizedQuery) return [];
+        const tokens = normalizedQuery.split(" ").filter(Boolean);
+
+        return restaurants
+          .map((item) => {
+            const name = restaurantDisplayName(item);
+            const address = restaurantDisplayAddress(item);
+            const haystack = normalizeSearchText(
+              [
+                name,
+                address,
+                item.attributes.Match_addr,
+                item.attributes.Postal,
+              ].join(" "),
+            );
+
+            if (!tokens.every((token) => haystack.includes(token))) return null;
+
+            const normalizedName = normalizeSearchText(name);
+            const normalizedAddress = normalizeSearchText(address);
+            let score = 0;
+            if (normalizedName === normalizedQuery) score += 100;
+            if (normalizedName.startsWith(normalizedQuery)) score += 50;
+            if (normalizedName.includes(normalizedQuery)) score += 25;
+            if (normalizedAddress.includes(normalizedQuery)) score += 12;
+            score += Math.max(0, 20 - normalizedName.length / 5);
+
+            return { ...item, searchScore: score };
+          })
+          .filter(Boolean)
+          .sort((a, b) => {
+            if (b.searchScore !== a.searchScore)
+              return b.searchScore - a.searchScore;
+            return restaurantDisplayName(a).localeCompare(
+              restaurantDisplayName(b),
+            );
+          })
+          .slice(0, limit);
+      }
+
+      function renderRestaurantSearchResults(query, matches) {
+        const container = document.getElementById("restaurantSearchResults");
+        if (!container) return;
+
+        if (!query) {
+          hideRestaurantSearchResults();
+          return;
+        }
+
+        container.classList.add("visible");
+
+        if (!matches.length) {
+          container.innerHTML = `<div class="search-empty">No matches found in the loaded restaurant data.</div>`;
+          return;
+        }
+
+        container.innerHTML = matches
+          .map((item) => {
+            const name = restaurantDisplayName(item);
+            const address =
+              restaurantDisplayAddress(item) || "Address unavailable";
+            const rating = clean(item.attributes.google_rating || "");
+            const price = clean(
+              item.attributes.google_price_label ||
+                item.attributes.google_price_bucket ||
+                "",
+            );
+            const quality =
+              qualityLabelFromScore(item.attributes.quality_score) ||
+              "Unknown inspection";
+            const details = [quality, rating ? `${rating}★` : "", price]
+              .filter(Boolean)
+              .join(" · ");
+            return `
+              <button type="button" class="search-result" data-restaurant-index="${item.searchIndex}">
+                <b>${escapeHtml(name)}</b>
+                <span>${escapeHtml(address)}</span>
+                ${details ? `<span>${escapeHtml(details)}</span>` : ""}
+              </button>
+            `;
+          })
+          .join("");
+
+        container.querySelectorAll(".search-result").forEach((button) => {
+          button.addEventListener("click", () => {
+            selectRestaurantSearchResult(
+              Number(button.dataset.restaurantIndex),
+            );
+          });
+        });
+      }
+
+      function hideRestaurantSearchResults() {
+        const container = document.getElementById("restaurantSearchResults");
+        if (!container) return;
+        container.classList.remove("visible");
+        container.innerHTML = "";
+      }
+
+      function selectRestaurantSearchResult(searchIndex) {
+        const item = restaurants.find(
+          (restaurant) => restaurant.searchIndex === searchIndex,
+        );
+        if (!item) return;
+
+        const name = restaurantDisplayName(item);
+        document.getElementById("restaurantSearchInput").value = name;
+        hideRestaurantSearchResults();
+        setAnalysisPoint(item.lat, item.lon, name);
+
+        if (view && item.graphic) {
+          view
+            .goTo({
+              target: item.graphic.geometry,
+              zoom: Math.max(view.zoom || DEFAULT_ZOOM, 16),
+            })
+            .catch((error) => {
+              if (error.name !== "AbortError") console.error(error);
+            });
+
+          window.setTimeout(() => openRestaurantPopup(item), 250);
+        }
+      }
+
+      function openRestaurantPopup(item) {
+        if (!view || !item?.graphic) return;
+        const popupOptions = {
+          features: [item.graphic],
+          location: item.graphic.geometry,
+        };
+        if (typeof view.openPopup === "function") {
+          view.openPopup(popupOptions);
+        } else if (view.popup && typeof view.popup.open === "function") {
+          view.popup.open(popupOptions);
+        }
+      }
+
+      function restaurantDisplayName(item) {
+        return clean(
+          item?.attributes?.google_name ||
+            item?.attributes?.USER_facility ||
+            "Unnamed food location",
+        );
+      }
+
+      function restaurantDisplayAddress(item) {
+        return clean(
+          item?.attributes?.google_address ||
+            item?.attributes?.Match_addr ||
+            "",
+        );
+      }
+
+      function normalizeSearchText(value) {
+        return clean(value)
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, " ")
+          .trim();
+      }
+
+      async function handleLocationSearch() {
+        const input = document.getElementById("locationInput").value.trim();
+        if (!input) {
+          setStatus(
+            "Enter an address/place, enter coordinates, or use 📍 drop pin.",
+          );
+          return;
+        }
+        const parsed = parseCoordinateInput(input);
+        if (parsed) {
+          setAnalysisPoint(parsed.lat, parsed.lon, "Coordinate input");
+          return;
+        }
+        setStatus(`Searching location with OpenStreetMap Nominatim:\n${input}`);
+        try {
+          const result = await geocodeWithNominatim(input);
+          if (!result) {
+            setStatus(`No location found for:\n${input}`);
+            return;
+          }
+          setAnalysisPoint(result.lat, result.lon, result.label || input);
+        } catch (error) {
+          console.error(error);
+          setStatus(`Location search failed:\n${error.message}`);
+        }
+      }
+
+      async function geocodeWithNominatim(query) {
+        const url =
+          "https://nominatim.openstreetmap.org/search?" +
+          new URLSearchParams({
+            q: query,
+            format: "jsonv2",
+            limit: "1",
+            addressdetails: "1",
+          }).toString();
+        const response = await fetch(url, {
+          headers: { Accept: "application/json" },
+        });
+        if (!response.ok) throw new Error(`Nominatim HTTP ${response.status}`);
+        const results = await response.json();
+        if (!Array.isArray(results) || results.length === 0) return null;
+        const first = results[0];
+        const lat = parseNumber(first.lat);
+        const lon = parseNumber(first.lon);
+        if (!isValidLonLat(lon, lat)) return null;
+        return { lat, lon, label: first.display_name };
+      }
+
+      function clearAnalysisSelection() {
+        currentAnalysisPoint = null;
+        lastAnalysisResult = null;
+        setDropPinMode(false);
+        if (analysisLayer) analysisLayer.removeAll();
+        if (highlightLayer) highlightLayer.removeAll();
+        if (benchmarkLayer) benchmarkLayer.removeAll();
+        resetRestaurantPointStyles();
+        clearCursorPin();
+
+        const locationInput = document.getElementById("locationInput");
+        if (locationInput) locationInput.value = "";
+
+        document.getElementById("riskNumber").textContent = "—";
+        document.getElementById("riskLabel").textContent = "Select a location";
+        document.getElementById("scoreMeta").textContent =
+          "Use Find, Center, 📍 drop pin, or restaurant search.";
+
+        const metricFallbacks = {
+          nearbyCount: "—",
+          benchmarkMatchCount: "—",
+          accessScore: "—",
+          inspectionScore: "—",
+          avgPrice: "—",
+          avgRating: "—",
+          weightedCount: "—",
+          avgProfileDiff: "—",
+        };
+        Object.entries(metricFallbacks).forEach(([id, value]) => {
+          const element = document.getElementById(id);
+          if (element) element.textContent = value;
+        });
+
+        const nearbyList = document.getElementById("nearbyList");
+        if (nearbyList) {
+          nearbyList.className = "nearby-list muted";
+          nearbyList.innerHTML = "No analysis yet.";
+        }
+
+        if (view) {
+          if (typeof view.closePopup === "function") view.closePopup();
+          else if (view.popup && typeof view.popup.close === "function")
+            view.popup.close();
+        }
+
+        setStatus(
+          "Selection removed. Use Find, Center, 📍 drop pin, or restaurant search.",
+        );
+        updateRangeFilterSummary();
+      }
+
+      function setAnalysisPoint(lat, lon, label) {
+        if (!isValidLonLat(lon, lat)) {
+          setStatus(
+            "Invalid analysis point. Expected valid longitude/latitude.",
+          );
+          return;
+        }
+        currentAnalysisPoint = { lat, lon, label };
+        document.getElementById("locationInput").value =
+          `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+        if (view) {
+          view
+            .goTo({
+              center: [lon, lat],
+              zoom: Math.max(view.zoom || DEFAULT_ZOOM, 14),
+            })
+            .catch((error) => {
+              if (error.name !== "AbortError") console.error(error);
+            });
+        }
+        analyzeCurrentPoint();
+      }
+
+      function analyzeCurrentPoint() {
+        if (!currentAnalysisPoint) return;
+        const options = getScoringOptions();
+
+        const nearby = restaurants
+          .map((restaurant) => {
+            const distanceMiles = haversineMiles(
+              currentAnalysisPoint.lat,
+              currentAnalysisPoint.lon,
+              restaurant.lat,
+              restaurant.lon,
+            );
+            const proximity = clamp(
+              100 * (1 - distanceMiles / options.radiusMiles),
+              0,
+              100,
+            );
+            const distanceWeight = clamp(
+              1 - 0.5 * (distanceMiles / options.radiusMiles),
+              0.5,
+              1,
+            );
+            const inspectionRawValue = inspectionRaw(restaurant.attributes);
+            const inspection = inspectionScore(restaurant.attributes);
+            const price = estimatedMealPrice(restaurant.attributes);
+            const priceDollars =
+              price === null ? null : priceBucketValue(price);
+            const affordability = affordabilityScore(
+              price,
+              options.idealPrice,
+              options.highPrice,
+            );
+            const ratingStars = googleRatingStars(restaurant.attributes);
+            const popularity = popularityScore(restaurant.attributes);
+            const profile = {
+              distanceMiles: clamp(distanceMiles, 0, 2),
+              inspectionRaw: inspectionRawValue,
+              ratingStars,
+              priceDollars,
+            };
+
+            return {
+              ...restaurant,
+              distanceMiles,
+              distanceWeight,
+              proximity,
+              inspection,
+              inspectionRaw: inspectionRawValue,
+              price,
+              priceDollars,
+              affordability,
+              popularity,
+              ratingStars,
+              profile,
+              profileDifference: null,
+              benchmarkUnitGap: null,
+              benchmarkNormalizedGap: null,
+              benchmarkMatch: false,
+              benchmarkHighlighted: false,
+            };
+          })
+          .filter(
+            (restaurant) => restaurant.distanceMiles <= options.radiusMiles,
+          )
+          .sort((a, b) => a.distanceMiles - b.distanceMiles);
+
+        nearby.forEach((restaurant) => {
+          const benchmark = rangeFilterMatch(restaurant, options);
+          restaurant.profileDifference = benchmark.difference;
+          restaurant.benchmarkUnitGap = benchmark.unitGap;
+          restaurant.benchmarkNormalizedGap = benchmark.normalizedGap;
+          restaurant.benchmarkMatch = benchmark.match;
+          restaurant.benchmarkMatchType = benchmark.matchType;
+          restaurant.benchmarkMissingMetrics = benchmark.missingMetrics || [];
+          restaurant.benchmarkKnownAxisCount = benchmark.knownAxisCount;
+          restaurant.benchmarkEnabledAxisCount = benchmark.enabledAxisCount;
+          restaurant.benchmarkRuleSummary = benchmark.ruleSummary;
+        });
+
+        nearby.forEach((restaurant) => {
+          restaurant.benchmarkHighlighted =
+            restaurant.benchmarkMatchType === "full";
+        });
+
+        const result = calculateFoodAccessScore(nearby, options);
+        lastAnalysisResult = { result, nearby, options };
+        drawAnalysisGraphics(currentAnalysisPoint, options.radiusMiles, nearby);
+        updateScoreUi(result, nearby, options);
+        updateInfoUi(result, nearby, options);
+        updateRangeFilterSummary();
+      }
+
+      function getScoringOptions() {
+        normalizeFilterInputs(null);
+
+        const radiusMiles = Math.max(0.25, getNumber("radiusMiles", 1));
+        const targetLocations = Math.max(1, getNumber("targetLocations", 8));
+
+        const ratingMode =
+          document.getElementById("ratingMode")?.value || "range";
+        let ratingMin = getNumber("ratingMin", 3);
+        let ratingMax = getNumber("ratingMax", 4.5);
+        if (ratingMode === "exact") {
+          ratingMax = ratingMin;
+          const ratingMaxInput = document.getElementById("ratingMax");
+          if (ratingMaxInput) ratingMaxInput.value = ratingMin;
+        } else if (ratingMin > ratingMax) {
+          [ratingMin, ratingMax] = [ratingMax, ratingMin];
+        }
+
+        const inspectionMode =
+          document.getElementById("inspectionMode")?.value || "range";
+        let inspectionMin = getNumber("inspectionMin", 1);
+        let inspectionMax = getNumber("inspectionMax", 2);
+        if (inspectionMode === "exact") {
+          inspectionMax = inspectionMin;
+          const inspectionMaxInput = document.getElementById("inspectionMax");
+          if (inspectionMaxInput) inspectionMaxInput.value = inspectionMin;
+        } else if (inspectionMin > inspectionMax) {
+          [inspectionMin, inspectionMax] = [inspectionMax, inspectionMin];
+        }
+
+        const priceMode =
+          document.getElementById("priceMode")?.value || "range";
+        let priceMin = getNumber("priceMin", 0);
+        let priceMax = getNumber("priceMax", 20);
+        if (priceMode === "exact") {
+          priceMax = priceMin;
+          const priceMaxInput = document.getElementById("priceMax");
+          if (priceMaxInput) priceMaxInput.value = priceMin;
+        } else if (priceMin > priceMax) {
+          [priceMin, priceMax] = [priceMax, priceMin];
+        }
+
+        const allowUnknownRating =
+          document.getElementById("allowUnknownRating")?.checked ?? true;
+        const allowUnknownPrice =
+          document.getElementById("allowUnknownPrice")?.checked ?? true;
+
+        const idealPrice = 10;
+        const highPrice = 30;
+
+        return {
+          radiusMiles,
+          targetLocations,
+          idealPrice,
+          highPrice,
+          ratingMode,
+          ratingMin,
+          ratingMax,
+          allowUnknownRating,
+          inspectionMode,
+          inspectionMin,
+          inspectionMax,
+          priceMode,
+          priceMin,
+          priceMax,
+          allowUnknownPrice,
+        };
+      }
+
+      function calculateFoodAccessScore(nearby, options) {
+        if (nearby.length === 0) {
+          return {
+            accessScore: 0,
+            riskScore: 100,
+            riskLabel: "Severe risk",
+            availabilityScore: 0,
+            inspectionScore: 0,
+            affordabilityScore: 0,
+            popularityScore: 0,
+            weightedCount: 0,
+            avgInspection: null,
+            avgPrice: null,
+            avgRating: null,
+            avgProfileDiff: null,
+            benchmarkMatchCount: 0,
+            benchmarkFullMatchCount: 0,
+            benchmarkPartialMatchCount: 0,
+            benchmarkHighlightedCount: 0,
+          };
+        }
+
+        const avgInspection = weightedAverage(
+          nearby,
+          "inspection",
+          "distanceWeight",
+        );
+        const avgAffordability = weightedAverage(
+          nearby,
+          "affordability",
+          "distanceWeight",
+        );
+        const avgPopularity = weightedAverage(
+          nearby,
+          "popularity",
+          "distanceWeight",
+        );
+        const avgPrice = weightedAverageNullable(
+          nearby,
+          "price",
+          "distanceWeight",
+        );
+        const avgRating = averageNullable(
+          nearby.map((item) => parseNumber(item.attributes.google_rating)),
+        );
+        const avgProfileDiff = averageNullable(
+          nearby.map((item) => item.profileDifference),
+        );
+
+        const benchmarkMatchCount = nearby.filter(
+          (item) => item.benchmarkMatch,
+        ).length;
+        const benchmarkFullMatchCount = nearby.filter(
+          (item) => item.benchmarkMatchType === "full",
+        ).length;
+        const benchmarkPartialMatchCount = nearby.filter(
+          (item) => item.benchmarkMatchType === "partial",
+        ).length;
+        const benchmarkHighlightedCount = nearby.filter(
+          (item) => item.benchmarkHighlighted,
+        ).length;
+
+        // The active range filters are now the scoring model.
+        // Full range matches count as 1.0 and partial matches with an allowed unknown value count as 0.5.
+        // The target count controls how many range-fitting locations are considered adequate access.
+        const matchEquivalentCount =
+          benchmarkFullMatchCount + benchmarkPartialMatchCount * 0.5;
+        const accessScore = clamp(
+          (matchEquivalentCount / options.targetLocations) * 100,
+          0,
+          100,
+        );
+        const riskScore = clamp(100 - accessScore, 0, 100);
+
+        return {
+          accessScore,
+          riskScore,
+          riskLabel: riskLabel(riskScore),
+          availabilityScore: accessScore,
+          inspectionScore: avgInspection,
+          affordabilityScore: avgAffordability,
+          popularityScore: avgPopularity,
+          weightedCount: matchEquivalentCount,
+          avgInspection,
+          avgPrice,
+          avgRating,
+          avgProfileDiff,
+          benchmarkMatchCount,
+          benchmarkFullMatchCount,
+          benchmarkPartialMatchCount,
+          benchmarkHighlightedCount,
+        };
+      }
+
+      function rangeFilterMatch(restaurant, options) {
+        const missingMetrics = [];
+        const failures = [];
+        let knownAxisCount = 0;
+        let passedAxisCount = 0;
+
+        // Distance is already filtered by radius. Keep it as a known/passed axis for confidence.
+        knownAxisCount += 1;
+        passedAxisCount += 1;
+
+        const inspection = parseNumber(restaurant.inspectionRaw);
+        if (inspection === null) {
+          missingMetrics.push("Inspection");
+        } else {
+          knownAxisCount += 1;
+          if (
+            inspection >= options.inspectionMin &&
+            inspection <= options.inspectionMax
+          ) {
+            passedAxisCount += 1;
+          } else {
+            failures.push("Inspection");
+          }
+        }
+
+        const rating = parseNumber(restaurant.ratingStars);
+        if (rating === null) {
+          if (options.allowUnknownRating) missingMetrics.push("Google stars");
+          else failures.push("Google stars");
+        } else {
+          knownAxisCount += 1;
+          if (rating >= options.ratingMin && rating <= options.ratingMax) {
+            passedAxisCount += 1;
+          } else {
+            failures.push("Google stars");
+          }
+        }
+
+        const price = parseNumber(restaurant.priceDollars);
+        if (price === null) {
+          if (options.allowUnknownPrice) missingMetrics.push("Price bucket");
+          else failures.push("Price bucket");
+        } else {
+          knownAxisCount += 1;
+          if (price >= options.priceMin && price <= options.priceMax) {
+            passedAxisCount += 1;
+          } else {
+            failures.push("Price bucket");
+          }
+        }
+
+        const enabledAxisCount = 4;
+        const knownAxesPass = failures.length === 0;
+        const hasAllowedUnknown = missingMetrics.length > 0;
+
+        const fullMatch = knownAxesPass && !hasAllowedUnknown;
+        const partialMatch =
+          knownAxesPass && hasAllowedUnknown && knownAxisCount >= 2;
+
+        const ratingGap =
+          rating === null
+            ? null
+            : rating < options.ratingMin
+              ? options.ratingMin - rating
+              : rating > options.ratingMax
+                ? rating - options.ratingMax
+                : 0;
+
+        const inspectionGap =
+          inspection === null
+            ? null
+            : inspection < options.inspectionMin
+              ? options.inspectionMin - inspection
+              : inspection > options.inspectionMax
+                ? inspection - options.inspectionMax
+                : 0;
+
+        const priceGap =
+          price === null
+            ? null
+            : price < options.priceMin
+              ? (options.priceMin - price) / 10
+              : price > options.priceMax
+                ? (price - options.priceMax) / 10
+                : 0;
+
+        const gaps = [ratingGap, inspectionGap, priceGap].filter(
+          (value) => value !== null && Number.isFinite(value),
+        );
+        const difference =
+          gaps.length === 0
+            ? 0
+            : Math.round(
+                (gaps.reduce((sum, value) => sum + value, 0) / gaps.length) *
+                  10,
+              ) / 10;
+
+        return {
+          difference,
+          unitGap: difference,
+          normalizedGap: difference,
+          match: fullMatch || partialMatch,
+          matchType: fullMatch ? "full" : partialMatch ? "partial" : "none",
+          missingMetrics,
+          enabledAxisCount,
+          knownAxisCount,
+          passedAxisCount,
+          ruleSummary: `rating ${options.ratingMode || "range"}, inspection ${options.inspectionMode || "range"}, price ${options.priceMode || "range"}`,
+        };
+      }
+
+      function activeBenchmarkMetrics() {
+        return BENCHMARK_METRICS.filter(
+          (metric) => benchmarkEnabled[metric.key] !== false,
+        );
+      }
+
+      function buildBenchmarkMatchContext(nearby, targets, mode) {
+        const context = {};
+
+        activeBenchmarkMetrics().forEach((metric) => {
+          const step = metric.matchStep || metric.step || 1;
+          const targetValue = snapMetricValue(
+            metric,
+            parseNumber(targets[metric.key]) ?? metric.defaultValue,
+          );
+          const distinctValues = uniqueSortedMetricValues(nearby, metric);
+          const optionCount = distinctValues.length;
+          const valuesWithinNextUnit = distinctValues.filter(
+            (value) => Math.abs(value - targetValue) <= step + 1e-9,
+          );
+          const relaxedShare =
+            optionCount === 0 ? 1 : valuesWithinNextUnit.length / optionCount;
+          const useRelaxed = optionCount > 0 && relaxedShare < 0.5;
+
+          context[metric.key] = {
+            step,
+            targetValue,
+            distinctValues,
+            optionCount,
+            valuesWithinNextUnit,
+            relaxedShare,
+            useRelaxed,
+          };
+        });
+
+        return context;
+      }
+
+      function uniqueSortedMetricValues(nearby, metric) {
+        const values = nearby
+          .map((item) => parseNumber(item.profile?.[metric.key]))
+          .filter((value) => value !== null && Number.isFinite(value))
+          .map((value) => snapMetricValue(metric, value));
+
+        return [...new Set(values)].sort((a, b) => a - b);
+      }
+
+      function benchmarkDifference(profile, targets, mode, context = null) {
+        const metrics = activeBenchmarkMetrics();
+
+        if (metrics.length === 0) {
+          return {
+            difference: null,
+            unitGap: null,
+            normalizedGap: null,
+            match: false,
+            matchType: "none",
+            missingMetrics: [],
+            enabledAxisCount: 0,
+            knownAxisCount: 0,
+            passedAxisCount: 0,
+            ruleSummary: "no enabled axes",
+          };
+        }
+
+        const axisResults = metrics.map((metric) => {
+          const profileValue = parseNumber(profile[metric.key]);
+          const targetValue = parseNumber(targets[metric.key]);
+          const metricContext = context?.[metric.key];
+          const snappedTarget =
+            metricContext?.targetValue ??
+            snapMetricValue(metric, targetValue ?? metric.defaultValue);
+          const step =
+            metricContext?.step ?? metric.matchStep ?? metric.step ?? 1;
+
+          if (profileValue === null || targetValue === null) {
+            return {
+              metric,
+              missing: true,
+              pass: true,
+              unitGap: null,
+              normalizedGap: null,
+            };
+          }
+
+          const snappedProfile = snapMetricValue(metric, profileValue);
+          const unitGap = Math.abs(snappedProfile - snappedTarget) / step;
+          const normalizedGap = Math.abs(
+            normalizeMetric10(metric, profileValue) -
+              normalizeMetric10(metric, targetValue),
+          );
+
+          let pass;
+          if (mode === "unit_average" || mode === "normalized_loose") {
+            // These modes are evaluated after the axis-level gaps are known.
+            pass = true;
+          } else if (mode === "adaptive_unit") {
+            const useRelaxed = metricContext?.useRelaxed ?? true;
+            pass = useRelaxed
+              ? Math.abs(snappedProfile - snappedTarget) <= step + 1e-9
+              : Math.abs(snappedProfile - snappedTarget) <= 1e-9;
+          } else {
+            pass = unitGap <= 1;
+          }
+
+          return {
+            metric,
+            missing: false,
+            pass,
+            unitGap,
+            normalizedGap,
+          };
+        });
+
+        const knownResults = axisResults.filter((result) => !result.missing);
+        const missingResults = axisResults.filter((result) => result.missing);
+        const knownAxisCount = knownResults.length;
+        const missingAxisCount = missingResults.length;
+        const enabledAxisCount = metrics.length;
+        const missingMetrics = missingResults.map(
+          (result) => result.metric.label,
+        );
+
+        if (knownAxisCount === 0) {
+          return {
+            difference: null,
+            unitGap: null,
+            normalizedGap: null,
+            match: false,
+            matchType: "none",
+            missingMetrics,
+            enabledAxisCount,
+            knownAxisCount,
+            passedAxisCount: 0,
+            ruleSummary: "all enabled axes unknown",
+          };
+        }
+
+        const averageUnitGap =
+          knownResults.reduce((sum, result) => sum + result.unitGap, 0) /
+          knownResults.length;
+        const maxUnitGap = Math.max(
+          ...knownResults.map((result) => result.unitGap),
+        );
+        const averageNormalizedGap =
+          knownResults.reduce((sum, result) => sum + result.normalizedGap, 0) /
+          knownResults.length;
+
+        let knownAxesPass = knownResults.every((result) => result.pass);
+        let ruleSummary = "";
+
+        if (mode === "unit_average") {
+          knownAxesPass = averageUnitGap <= 1;
+          ruleSummary = "average ± next unit";
+        } else if (mode === "normalized_loose") {
+          knownAxesPass = averageNormalizedGap <= 2;
+          ruleSummary = "loose normalized profile";
+        } else if (mode === "adaptive_unit") {
+          const relaxedCount = metrics.filter(
+            (metric) => context?.[metric.key]?.useRelaxed,
+          ).length;
+          ruleSummary = `adaptive: ${relaxedCount} relaxed, ${metrics.length - relaxedCount} exact`;
+        } else {
+          knownAxesPass = maxUnitGap <= 1;
+          ruleSummary = "strict ± next unit";
+        }
+
+        const passedAxisCount = knownResults.filter(
+          (result) => result.pass,
+        ).length;
+        const fullMatch = knownAxesPass && missingAxisCount === 0;
+        const partialMatch =
+          knownAxesPass &&
+          missingAxisCount === 1 &&
+          knownAxisCount >= Math.max(1, enabledAxisCount - 1);
+        const matchType = fullMatch
+          ? "full"
+          : partialMatch
+            ? "partial"
+            : "none";
+
+        return {
+          difference: Math.round(averageUnitGap * 10) / 10,
+          unitGap: Math.round(averageUnitGap * 10) / 10,
+          normalizedGap: Math.round(averageNormalizedGap * 10) / 10,
+          match: fullMatch || partialMatch,
+          matchType,
+          missingMetrics,
+          enabledAxisCount,
+          knownAxisCount,
+          passedAxisCount,
+          ruleSummary,
+        };
+      }
+
+      function computeNearbyAverageProfile(nearby) {
+        if (!nearby.length) return null;
+        const profile = {};
+        BENCHMARK_METRICS.forEach((metric) => {
+          const avg = weightedAverageNullable(
+            nearby,
+            metric.key,
+            "distanceWeight",
+          );
+          profile[metric.key] = avg === null ? null : avg;
+        });
+        return profile;
+      }
+
+      function inspectionRaw(attributes) {
+        const quality = clean(attributes.quality_score).toUpperCase();
+        const grade = clean(attributes.USER_current_rating).toUpperCase();
+
+        // Normalize inspection as: 0 = Unsatisfactory, 1 = Satisfactory, 2 = Good.
+        if (quality === "2") return 2;
+        if (quality === "1") return 1;
+        if (quality === "0" || quality === "3" || quality === "4") return 0;
+
+        if (grade === "GOOD" || grade === "A") return 2;
+        if (grade === "SATISFACTORY" || grade === "B") return 1;
+        if (
+          grade === "UNSATISFACTORY" ||
+          grade === "C" ||
+          grade === "D" ||
+          grade === "F"
+        )
+          return 0;
+
+        const numeric = parseNumber(grade);
+        if (numeric !== null) {
+          if (numeric <= 2) return clamp(Math.round(numeric), 0, 2);
+          if (numeric <= 100)
+            return clamp(Math.round((numeric / 100) * 2), 0, 2);
+        }
+
+        return null;
+      }
+
+      function inspectionScore(attributes) {
+        const raw = inspectionRaw(attributes);
+        return raw === null ? 50 : clamp((raw / 2) * 100, 0, 100);
+      }
+
+      function estimatedMealPrice(attributes) {
+        const start = parseNumber(attributes.google_price_range_start);
+        const end = parseNumber(attributes.google_price_range_end);
+        if (start !== null && end !== null) return (start + end) / 2;
+        if (start !== null && end === null) return start;
+        const label = clean(
+          attributes.google_price_label || attributes.google_price_bucket,
+        );
+        const fromLabel = priceFromLabel(label);
+        if (fromLabel !== null) return fromLabel;
+        const level = clean(attributes.google_price_level).toUpperCase();
+        const levelPrices = {
+          PRICE_LEVEL_FREE: 0,
+          PRICE_LEVEL_INEXPENSIVE: 9,
+          PRICE_LEVEL_MODERATE: 15,
+          PRICE_LEVEL_EXPENSIVE: 25,
+          PRICE_LEVEL_VERY_EXPENSIVE: 35,
+          FREE: 0,
+          INEXPENSIVE: 9,
+          MODERATE: 15,
+          EXPENSIVE: 25,
+          VERY_EXPENSIVE: 35,
+        };
+        if (Object.prototype.hasOwnProperty.call(levelPrices, level))
+          return levelPrices[level];
+        return null;
+      }
+
+      function priceFromLabel(label) {
+        if (!label) return null;
+        const cleaned = String(label).replace(/USD/gi, "").replace(/\s/g, "");
+        if (cleaned === "$") return 10;
+        if (cleaned === "$$") return 18;
+        if (cleaned === "$$$") return 30;
+        if (cleaned === "$$$$") return 45;
+        const numbers = cleaned.match(/\d+(?:\.\d+)?/g);
+        if (!numbers || numbers.length === 0) return null;
+        const values = numbers.map(Number).filter(Number.isFinite);
+        if (values.length >= 2) return (values[0] + values[1]) / 2;
+        if (values.length === 1) return values[0];
+        return null;
+      }
+
+      function priceBucketValue(price) {
+        const numeric = parseNumber(price);
+        if (numeric === null) return null;
+        if (numeric < 10) return 0;
+        if (numeric < 20) return 10;
+        return 20;
+      }
+
+      function priceBucketLabel(bucketValue) {
+        const bucket = priceBucketValue(bucketValue);
+        if (bucket === 0) return "$0–9";
+        if (bucket === 10) return "$10–19";
+        return "$20+";
+      }
+
+      function preloadLocalPinImage() {
+        if (!USE_LOCAL_PIN_IMAGE) {
+          localPinImageAvailable = false;
+          return;
+        }
+
+        const image = new Image();
+        image.onload = () => {
+          localPinImageAvailable = true;
+          if (currentAnalysisPoint) {
+            analyzeCurrentPoint();
+          }
+        };
+        image.onerror = () => {
+          localPinImageAvailable = false;
+          // No console error needed. Missing pin.png is allowed; red-dot fallback is intentional.
+        };
+        image.src = LOCAL_PIN_IMAGE_URL;
+      }
+
+      function selectedPinSymbol() {
+        if (USE_LOCAL_PIN_IMAGE && localPinImageAvailable) {
+          return {
+            type: "picture-marker",
+            url: LOCAL_PIN_IMAGE_URL,
+            width: "52px",
+            height: "52px",
+            yoffset: 26,
+          };
+        }
+
+        return {
+          type: "simple-marker",
+          style: "circle",
+          color: [220, 38, 38, 1],
+          size: 30,
+          outline: { color: [0, 0, 0, 1], width: 3 },
+        };
+      }
+
+      function dropPinCursorSymbol() {
+        if (USE_LOCAL_PIN_IMAGE && localPinImageAvailable) {
+          return {
+            type: "picture-marker",
+            url: LOCAL_PIN_IMAGE_URL,
+            width: "42px",
+            height: "42px",
+            yoffset: 21,
+          };
+        }
+
+        return {
+          type: "simple-marker",
+          style: "circle",
+          color: [220, 38, 38, 0.35],
+          size: 30,
+          outline: { color: [0, 0, 0, 1], width: 2.5 },
+        };
+      }
+
+      function affordabilityScore(price, idealPrice, highPrice) {
+        if (price === null || price === undefined || Number.isNaN(price))
+          return 50;
+        if (price <= idealPrice) return 100;
+        if (price >= highPrice) return 0;
+        return clamp(
+          100 * (1 - (price - idealPrice) / (highPrice - idealPrice)),
+          0,
+          100,
+        );
+      }
+
+      function googleRatingStars(attributes) {
+        const rating = parseNumber(attributes.google_rating);
+        return rating === null ? null : clamp(rating, 0, 5);
+      }
+
+      function popularityScore(attributes) {
+        // Normalize Google review stars directly to a 0-100 score.
+        // Unknown ratings are neutral for food-desert score, but unknown for benchmark matching.
+        const stars = googleRatingStars(attributes);
+        return stars === null ? 50 : clamp((stars / 5) * 100, 0, 100);
+      }
+
+      function drawAnalysisGraphics(point, radiusMiles, nearby) {
+        analysisLayer.removeAll();
+        highlightLayer.removeAll();
+        benchmarkLayer.removeAll();
+        resetRestaurantPointStyles();
+
+        const radiusPolygon = makeCirclePolygon(
+          point.lat,
+          point.lon,
+          radiusMiles,
+          96,
+        );
+        analysisLayer.add(
+          new Graphic({
+            geometry: radiusPolygon,
+            symbol: {
+              type: "simple-fill",
+              color: [0, 0, 0, 0],
+              outline: { color: [0, 255, 255, 1], width: 3 },
+            },
+          }),
+        );
+
+        analysisLayer.add(
+          new Graphic({
+            geometry: {
+              type: "point",
+              longitude: point.lon,
+              latitude: point.lat,
+              spatialReference: { wkid: 4326 },
+            },
+            symbol: selectedPinSymbol(),
+            attributes: {
+              label: point.label || "Analysis point",
+              latitude: point.lat.toFixed(6),
+              longitude: point.lon.toFixed(6),
+              radius: `${radiusMiles} mi`,
+            },
+            popupTemplate: {
+              title: "Analysis Point",
+              content: [
+                {
+                  type: "fields",
+                  fieldInfos: [
+                    { fieldName: "label", label: "Source" },
+                    { fieldName: "latitude", label: "Latitude" },
+                    { fieldName: "longitude", label: "Longitude" },
+                    { fieldName: "radius", label: "Radius" },
+                  ],
+                },
+              ],
+            },
+          }),
+        );
+
+        // Do not add duplicate overlay points. Update the existing restaurant
+        // graphics in-place so the original marker outline/fill is the only point shown.
+        nearby.forEach((item) => {
+          if (!item.graphic) return;
+          item.graphic.attributes = decorateAttributesForPopup(item);
+          item.graphic.popupTemplate = buildRestaurantPopupTemplate();
+          item.graphic.symbol =
+            item.benchmarkMatchType === "full"
+              ? benchmarkMatchSymbol(item)
+              : item.benchmarkMatchType === "partial"
+                ? partialRangeMatchSymbol()
+                : nearbyRestaurantSymbol(item);
+        });
+
+        bringFullRangeMatchesToFront(nearby);
+      }
+
+      function benchmarkMatchSymbol(item) {
+        if (item.benchmarkMatchType !== "full") {
+          return nearbyRestaurantSymbol(item);
+        }
+        return {
+          type: "simple-marker",
+          style: "circle",
+          // Full range matches are bright purple and solid.
+          color: [180, 70, 255, 1],
+          size: 28,
+          outline: { color: [0, 0, 0, 1], width: 3 },
+        };
+      }
+
+      function bringFullRangeMatchesToFront(nearby) {
+        if (!restaurantLayer) return;
+
+        nearby
+          .filter((item) => item.benchmarkMatchType === "full" && item.graphic)
+          .forEach((item) => {
+            restaurantLayer.remove(item.graphic);
+            restaurantLayer.add(item.graphic);
+          });
+      }
+
+      function partialRangeMatchSymbol() {
+        return {
+          type: "simple-marker",
+          style: "circle",
+          color: [180, 180, 180, 1],
+          size: 21,
+          outline: { color: [0, 0, 0, 1], width: 3 },
+        };
+      }
+
+      function nearbyRestaurantSymbol(item) {
+        // Nearby locations that are not full range matches keep their original
+        // inspection color, but become solid so they are visible against imagery.
+        return qualityPointSymbol(item.attributes.quality_score, 1, 21, 2.5);
+      }
+
+      function resetRestaurantPointStyles() {
+        restaurants.forEach((item) => {
+          if (!item.graphic) return;
+          item.graphic.symbol = baseRestaurantSymbol(
+            item.attributes.quality_score,
+          );
+          item.graphic.attributes = item.attributes;
+          item.graphic.popupTemplate = buildRestaurantPopupTemplate();
+        });
+      }
+
+      function decorateAttributesForPopup(item) {
+        return {
+          ...item.attributes,
+          popup_title:
+            item.attributes.google_name ||
+            item.attributes.USER_facility ||
+            "Unnamed food location",
+          popup_distance_miles: item.distanceMiles.toFixed(2),
+          profile_difference:
+            item.profileDifference === null ||
+            item.profileDifference === undefined
+              ? ""
+              : `${item.profileDifference} unit gap`,
+          benchmark_match_type: item.benchmarkMatchType || "none",
+          benchmark_confidence_note:
+            item.benchmarkMatchType === "partial"
+              ? `Partial match; unknown: ${(item.benchmarkMissingMetrics || []).join(", ")}`
+              : item.benchmarkMatchType === "full"
+                ? "Full match"
+                : "Not a benchmark match",
+        };
+      }
+
+      function makeCirclePolygon(lat, lon, radiusMiles, steps) {
+        const ring = [];
+        for (let i = 0; i <= steps; i++) {
+          const bearing = (i / steps) * 360;
+          const dest = destinationPoint(lat, lon, bearing, radiusMiles);
+          ring.push([dest.lon, dest.lat]);
+        }
+        return {
+          type: "polygon",
+          rings: [ring],
+          spatialReference: { wkid: 4326 },
+        };
+      }
+
+      function destinationPoint(lat, lon, bearingDegrees, distanceMiles) {
+        const earthRadiusMiles = 3958.7613;
+        const angularDistance = distanceMiles / earthRadiusMiles;
+        const bearing = toRad(bearingDegrees);
+        const lat1 = toRad(lat);
+        const lon1 = toRad(lon);
+        const lat2 = Math.asin(
+          Math.sin(lat1) * Math.cos(angularDistance) +
+            Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing),
+        );
+        const lon2 =
+          lon1 +
+          Math.atan2(
+            Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
+            Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2),
+          );
+        return { lat: toDeg(lat2), lon: ((toDeg(lon2) + 540) % 360) - 180 };
+      }
+
+      function updateScoreUi(result, nearby, options) {
+        document.getElementById("scoreCard").classList.add("visible");
+        document.getElementById("riskNumber").textContent = Math.round(
+          result.riskScore,
+        ).toString();
+        document.getElementById("riskLabel").textContent = result.riskLabel;
+        document.getElementById("scoreMeta").textContent =
+          `${nearby.length} location(s) within ${options.radiusMiles} mi` +
+          ` · ${result.benchmarkFullMatchCount} full + ${result.benchmarkPartialMatchCount} partial range match(es)` +
+          ` · Range access ${Math.round(result.accessScore)}/100`;
+      }
+
+      function updateInfoUi(result, nearby, options) {
+        document.getElementById("nearbyCount").textContent =
+          nearby.length.toString();
+        document.getElementById("benchmarkMatchCount").textContent =
+          `${result.benchmarkFullMatchCount} full + ${result.benchmarkPartialMatchCount} partial`;
+        document.getElementById("accessScore").textContent =
+          `${Math.round(result.accessScore)}/100`;
+        document.getElementById("inspectionScore").textContent =
+          `${Math.round(result.inspectionScore)}/100`;
+        document.getElementById("avgPrice").textContent =
+          result.avgPrice === null
+            ? "Unknown"
+            : `$${result.avgPrice.toFixed(0)}`;
+        document.getElementById("avgRating").textContent =
+          result.avgRating === null ? "Unknown" : result.avgRating.toFixed(1);
+        document.getElementById("weightedCount").textContent =
+          result.weightedCount.toFixed(1);
+        document.getElementById("avgProfileDiff").textContent =
+          result.avgProfileDiff === null
+            ? "—"
+            : `${result.avgProfileDiff.toFixed(1)} unit gap`;
+        setStatus(
+          `Analysis point: ${currentAnalysisPoint.lat.toFixed(6)}, ${currentAnalysisPoint.lon.toFixed(6)}\n` +
+            `Radius: ${options.radiusMiles} mi | Nearby: ${nearby.length} | Range matches: ${result.benchmarkMatchCount}\n` +
+            `Food desert risk: ${Math.round(result.riskScore)}/100 (${result.riskLabel})`,
+        );
+        updateNearbyList(nearby);
+      }
+
+      function updateNearbyList(nearby) {
+        const container = document.getElementById("nearbyList");
+        if (nearby.length === 0) {
+          container.className = "nearby-list muted";
+          container.innerHTML =
+            "No food locations found inside the selected radius.";
+          return;
+        }
+        container.className = "nearby-list";
+        container.innerHTML = nearby
+          .slice(0, 14)
+          .map((item) => {
+            const a = item.attributes;
+            const name = escapeHtml(
+              a.USER_facility || a.google_name || "Unnamed location",
+            );
+            const address = escapeHtml(a.Match_addr || a.google_address || "");
+            const rating = clean(a.google_rating) || "—";
+            const reviews = clean(a.google_review_count) || "0";
+            const price = clean(a.google_price_label) || "Price unavailable";
+            const inspection =
+              qualityLabelFromScore(a.quality_score) ||
+              clean(
+                a.quality_label || a.USER_current_rating || a.quality_score,
+              ) ||
+              "Unknown";
+            const miles = item.distanceMiles.toFixed(2);
+            const mapsLink = clean(a.google_maps_uri);
+            const confidenceNote =
+              item.benchmarkMatchType === "partial"
+                ? ` · Partial match; unknown ${escapeHtml((item.benchmarkMissingMetrics || []).join(", "))}`
+                : "";
+            const matchLabel = item.benchmarkMatch
+              ? ` · ${item.benchmarkMatchType === "partial" ? "Partial range match" : "Full range match"}, avg gap ${item.profileDifference} unit(s)${confidenceNote}`
+              : ` · Avg gap ${item.profileDifference} unit(s)`;
+            const itemClass =
+              item.benchmarkMatchType === "full"
+                ? "benchmark-match"
+                : item.benchmarkMatchType === "partial"
+                  ? "partial-benchmark-match"
+                  : "";
+            return `
+            <div class="nearby-item ${itemClass}">
+              <b>${name}</b><br />
+              ${address ? `${address}<br />` : ""}
+              <span>${miles} mi away${escapeHtml(matchLabel)}</span><br />
+              <span>Inspection: ${escapeHtml(inspection)} | Google: ${escapeHtml(rating)} (${escapeHtml(reviews)} reviews) | Price: ${escapeHtml(price)}</span>
+              ${mapsLink ? `<br /><a href="${escapeHtml(mapsLink)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>` : ""}
+            </div>
+          `;
+          })
+          .join("");
+      }
+
+      function drawBenchmarkChart() {
+        const svg = document.getElementById("benchmarkChart");
+        if (!svg) return;
+        const size = 250;
+        const center = 125;
+        const radius = 82;
+        const gridLevels = [0.25, 0.5, 0.75, 1];
+        const targetPoints = BENCHMARK_METRICS.map((metric, index) =>
+          radarPoint(
+            index,
+            normalizeMetricValue(metric, benchmarkTargets[metric.key]),
+            center,
+            radius,
+          ),
+        );
+        const averagePoints = nearbyAverageProfile
+          ? BENCHMARK_METRICS.map((metric, index) => {
+              const value = nearbyAverageProfile[metric.key];
+              return radarPoint(
+                index,
+                value === null ? 0 : normalizeMetricValue(metric, value),
+                center,
+                radius,
+              );
+            })
+          : [];
+
+        const polygonPoints = (points) =>
+          points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+        let markup = "";
+
+        gridLevels.forEach((level) => {
+          const points = BENCHMARK_METRICS.map((_, index) =>
+            radarPoint(index, level, center, radius),
+          );
+          markup += `<polygon points="${polygonPoints(points)}" fill="none" stroke="#dedede" stroke-width="1" />`;
+        });
+
+        BENCHMARK_METRICS.forEach((metric, index) => {
+          const enabled = benchmarkEnabled[metric.key] !== false;
+          const end = radarPoint(index, 1, center, radius);
+          const label = radarPoint(index, 1.18, center, radius);
+          markup += `<line x1="${center}" y1="${center}" x2="${end.x}" y2="${end.y}" stroke="${enabled ? "#d0d0d0" : "#e5e7eb"}" stroke-width="1" stroke-dasharray="${enabled ? "" : "3 3"}" />`;
+          markup += `<text x="${label.x}" y="${label.y}" text-anchor="middle" dominant-baseline="middle" font-size="10" font-weight="700" fill="${enabled ? "#444" : "#aaa"}">${escapeSvg(metric.shortLabel)}</text>`;
+        });
+
+        if (averagePoints.length) {
+          markup += `<polygon points="${polygonPoints(averagePoints)}" fill="rgba(43, 140, 190, 0.13)" stroke="#2b8cbe" stroke-width="2" stroke-dasharray="4 3" />`;
+        }
+
+        markup += `<polygon points="${polygonPoints(targetPoints)}" fill="rgba(217, 119, 6, 0.16)" stroke="#d97706" stroke-width="2.5" />`;
+
+        targetPoints.forEach((point, index) => {
+          const metric = BENCHMARK_METRICS[index];
+          const enabled = benchmarkEnabled[metric.key] !== false;
+          markup += `<circle class="benchmark-handle" data-metric="${metric.key}" cx="${point.x}" cy="${point.y}" r="8" fill="${enabled ? "#d97706" : "#9ca3af"}" stroke="white" stroke-width="2" opacity="${enabled ? "1" : "0.55"}" style="cursor: ${enabled ? "grab" : "not-allowed"};" />`;
+        });
+
+        markup += `<circle cx="${center}" cy="${center}" r="2" fill="#777" />`;
+        svg.innerHTML = markup;
+
+        svg.querySelectorAll(".benchmark-handle").forEach((handle) => {
+          handle.addEventListener("pointerdown", (event) => {
+            const metricKey = event.currentTarget.getAttribute("data-metric");
+            if (benchmarkEnabled[metricKey] === false) return;
+            dragMetricKey = metricKey;
+            event.currentTarget.setPointerCapture(event.pointerId);
+            event.preventDefault();
+          });
+        });
+
+        updateBenchmarkValuesUi();
+      }
+
+      function radarPoint(index, normalizedRatio, center, radius) {
+        const angle =
+          -Math.PI / 2 + (index * 2 * Math.PI) / BENCHMARK_METRICS.length;
+        const scaled = clamp(normalizedRatio, 0, 1.2);
+        return {
+          x: center + Math.cos(angle) * radius * scaled,
+          y: center + Math.sin(angle) * radius * scaled,
+        };
+      }
+
+      function handleBenchmarkPointerMove(event) {
+        if (!dragMetricKey) return;
+        const svg = document.getElementById("benchmarkChart");
+        const point = svg.createSVGPoint();
+        point.x = event.clientX;
+        point.y = event.clientY;
+        const svgPoint = point.matrixTransform(svg.getScreenCTM().inverse());
+        const metricIndex = BENCHMARK_METRICS.findIndex(
+          (metric) => metric.key === dragMetricKey,
+        );
+        if (metricIndex < 0) return;
+        const metric = BENCHMARK_METRICS[metricIndex];
+        const center = 125;
+        const radius = 82;
+        const angle =
+          -Math.PI / 2 + (metricIndex * 2 * Math.PI) / BENCHMARK_METRICS.length;
+        const axisX = Math.cos(angle);
+        const axisY = Math.sin(angle);
+        const dx = svgPoint.x - center;
+        const dy = svgPoint.y - center;
+        const projection = clamp((dx * axisX + dy * axisY) / radius, 0, 1);
+        const rawValue = metric.min + projection * (metric.max - metric.min);
+        benchmarkTargets[dragMetricKey] = snapMetricValue(metric, rawValue);
+        drawBenchmarkChart();
+        if (currentAnalysisPoint) analyzeCurrentPoint();
+      }
+
+      function normalizeMetricValue(metric, value) {
+        const numeric = parseNumber(value);
+        const safeValue = numeric === null ? metric.defaultValue : numeric;
+        return clamp(
+          (safeValue - metric.min) / (metric.max - metric.min),
+          0,
+          1,
+        );
+      }
+
+      function normalizeMetric10(metric, value) {
+        return normalizeMetricValue(metric, value) * 10;
+      }
+
+      function snapMetricValue(metric, value) {
+        const step = metric.step || 1;
+        const snapped = Math.round(value / step) * step;
+        return clamp(Number(snapped.toFixed(2)), metric.min, metric.max);
+      }
+
+      function formatMetricValue(metric, value) {
+        const numeric = parseNumber(value);
+        const safeValue = numeric === null ? metric.defaultValue : numeric;
+        if (metric.key === "inspectionRaw") {
+          if (safeValue >= 1.5) return "2 good";
+          if (safeValue >= 0.5) return "1 satisfactory";
+          return "0 unsatisfactory";
+        }
+        if (metric.key === "distanceMiles")
+          return `${safeValue.toFixed(safeValue % 1 === 0 ? 0 : 2)} mi`;
+        if (metric.key === "ratingStars") return `${safeValue.toFixed(1)}★`;
+        if (metric.key === "priceDollars") return priceBucketLabel(safeValue);
+        return `${safeValue}`;
+      }
+
+      function roundToStep(value, step) {
+        if (!Number.isFinite(value)) return value;
+        return Math.round(value / step) * step;
+      }
+
+      function stopBenchmarkDrag() {
+        dragMetricKey = null;
+      }
+
+      function updateBenchmarkValuesUi() {
+        const container = document.getElementById("benchmarkValues");
+        if (!container) return;
+        container.innerHTML = BENCHMARK_METRICS.map((metric) => {
+          const enabled = benchmarkEnabled[metric.key] !== false;
+          const target = benchmarkTargets[metric.key] ?? metric.defaultValue;
+          const avg =
+            nearbyAverageProfile &&
+            Number.isFinite(nearbyAverageProfile[metric.key])
+              ? nearbyAverageProfile[metric.key]
+              : null;
+          return `
+            <div class="benchmark-value-row ${enabled ? "" : "disabled"}">
+              <input class="benchmark-axis-toggle" type="checkbox" data-metric="${metric.key}" ${enabled ? "checked" : ""} aria-label="Use ${escapeHtml(metric.label)} in benchmark matching" />
+              <span class="axis-name">${escapeHtml(metric.label)}</span>
+              <b class="axis-value">${formatMetricValue(metric, target)}${avg === null ? "" : ` / avg ${formatMetricValue(metric, avg)}`}</b>
+            </div>
+          `;
+        }).join("");
+
+        container
+          .querySelectorAll(".benchmark-axis-toggle")
+          .forEach((checkbox) => {
+            checkbox.addEventListener("change", (event) => {
+              const metricKey = event.currentTarget.getAttribute("data-metric");
+              benchmarkEnabled[metricKey] = event.currentTarget.checked;
+              drawBenchmarkChart();
+              if (currentAnalysisPoint) analyzeCurrentPoint();
+            });
+          });
+      }
+
+      function resetBenchmarkTargets() {
+        benchmarkTargets = Object.fromEntries(
+          BENCHMARK_METRICS.map((metric) => [metric.key, metric.defaultValue]),
+        );
+        benchmarkEnabled = Object.fromEntries(
+          BENCHMARK_METRICS.map((metric) => [metric.key, true]),
+        );
+        drawBenchmarkChart();
+        if (currentAnalysisPoint) analyzeCurrentPoint();
+      }
+
+      function riskLabel(riskScore) {
+        if (riskScore >= 75) return "Severe risk";
+        if (riskScore >= 50) return "High risk";
+        if (riskScore >= 25) return "Moderate risk";
+        return "Low risk";
+      }
+
+      function qualityPointSymbol(qualityScore, opacity, size, outlineWidth) {
+        const cleaned = clean(qualityScore);
+        let color;
+
+        if (cleaned === "2") {
+          // Good inspection = bright green.
+          color = [0, 255, 90, opacity];
+        } else if (cleaned === "1") {
+          // Satisfactory inspection = bright yellow.
+          color = [255, 230, 0, opacity];
+        } else {
+          // Unsatisfactory/missing/other inspection = gray.
+          color = [160, 160, 160, opacity];
+        }
+
+        return {
+          type: "simple-marker",
+          style: "circle",
+          color,
+          size,
+          outline: { color: [0, 0, 0, 1], width: outlineWidth },
+        };
+      }
+
+      function baseRestaurantSymbol(qualityScore) {
+        // Default, outside-radius points stay lightly transparent.
+        return qualityPointSymbol(qualityScore, 0.15, 16, 2);
+      }
+
+      // Backward-compatible alias for any older call sites.
+      function symbolForQualityScore(qualityScore) {
+        return baseRestaurantSymbol(qualityScore);
+      }
+
+      function parseCoordinateInput(value) {
+        const parts = clean(value)
+          .split(/[ ,]+/)
+          .map((part) => parseNumber(part))
+          .filter((part) => part !== null);
+        if (parts.length < 2) return null;
+        const a = parts[0];
+        const b = parts[1];
+        if (Math.abs(a) > 90 && Math.abs(b) <= 90) {
+          if (isValidLonLat(a, b)) return { lon: a, lat: b };
+        }
+        if (isValidLonLat(b, a)) return { lat: a, lon: b };
+        if (isValidLonLat(a, b)) return { lon: a, lat: b };
+        return null;
+      }
+
+      function haversineMiles(lat1, lon1, lat2, lon2) {
+        const radiusMiles = 3958.7613;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(toRad(lat1)) *
+            Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return radiusMiles * c;
+      }
+
+      function weightedAverage(items, valueKey, weightKey) {
+        const valid = items.filter(
+          (item) =>
+            Number.isFinite(item[valueKey]) && Number.isFinite(item[weightKey]),
+        );
+        if (valid.length === 0) return 0;
+        const numerator = valid.reduce(
+          (sum, item) => sum + item[valueKey] * item[weightKey],
+          0,
+        );
+        const denominator = valid.reduce(
+          (sum, item) => sum + item[weightKey],
+          0,
+        );
+        return denominator === 0 ? 0 : numerator / denominator;
+      }
+
+      function weightedAverageNullable(items, valueKey, weightKey) {
+        const valid = items.filter(
+          (item) =>
+            item[valueKey] !== null &&
+            Number.isFinite(item[valueKey]) &&
+            Number.isFinite(item[weightKey]),
+        );
+        if (valid.length === 0) return null;
+        const numerator = valid.reduce(
+          (sum, item) => sum + item[valueKey] * item[weightKey],
+          0,
+        );
+        const denominator = valid.reduce(
+          (sum, item) => sum + item[weightKey],
+          0,
+        );
+        return denominator === 0 ? null : numerator / denominator;
+      }
+
+      function averageNullable(values) {
+        const valid = values.filter(
+          (value) => value !== null && Number.isFinite(value),
+        );
+        if (valid.length === 0) return null;
+        return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+      }
+
+      function getField(row, possibleNames) {
+        for (const name of possibleNames) {
+          if (Object.prototype.hasOwnProperty.call(row, name)) return row[name];
+        }
+        const normalizedLookup = {};
+        for (const key of Object.keys(row))
+          normalizedLookup[normalizeHeader(key)] = key;
+        for (const name of possibleNames) {
+          const actualKey = normalizedLookup[normalizeHeader(name)];
+          if (actualKey) return row[actualKey];
+        }
+        return "";
+      }
+
+      function normalizeHeader(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[_\-\s]/g, "");
+      }
+
+      function formatPhotoAttribution(value) {
+        if (value === null || value === undefined || value === "") return "";
+
+        let parsed = value;
+        if (typeof value === "string") {
+          const trimmed = value.trim();
+          if (!trimmed) return "";
+          if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+            try {
+              parsed = JSON.parse(trimmed);
+            } catch (error) {
+              return trimmed;
+            }
+          } else {
+            return trimmed;
+          }
+        }
+
+        const items = Array.isArray(parsed) ? parsed : [parsed];
+        return items
+          .map((item) => {
+            if (!item) return "";
+            if (typeof item === "string") return item;
+            return (
+              item.displayName || item.author || item.uri || item.photoUri || ""
+            );
+          })
+          .filter(Boolean)
+          .join(", ");
+      }
+
+      function qualityLabelFromScore(score) {
+        const cleaned = clean(score);
+        if (cleaned === "2") return "Good";
+        if (cleaned === "1") return "Satisfactory";
+        if (cleaned === "0") return "Unsatisfactory";
+        return "";
+      }
+
+      function firstValidNumber(values) {
+        for (const value of values) {
+          const parsed = parseNumber(value);
+          if (parsed !== null) return parsed;
+        }
+        return null;
+      }
+
+      function parseNumber(value) {
+        if (value === null || value === undefined) return null;
+        const cleaned = String(value).trim().replace(/,/g, "");
+        if (!cleaned) return null;
+        const number = Number(cleaned);
+        return Number.isFinite(number) ? number : null;
+      }
+
+      function isValidLonLat(lon, lat) {
+        return (
+          typeof lon === "number" &&
+          typeof lat === "number" &&
+          lon >= -180 &&
+          lon <= 180 &&
+          lat >= -90 &&
+          lat <= 90
+        );
+      }
+
+      function getNumber(id, fallback) {
+        const value = parseNumber(document.getElementById(id).value);
+        return value === null ? fallback : value;
+      }
+
+      function clean(value) {
+        if (value === null || value === undefined) return "";
+        return String(value).trim();
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function toRad(degrees) {
+        return (degrees * Math.PI) / 180;
+      }
+
+      function toDeg(radians) {
+        return (radians * 180) / Math.PI;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function escapeSvg(value) {
+        return escapeHtml(value);
+      }
+
+      function setStatus(message) {
+        document.getElementById("status").textContent = message;
+      }
+    </script>
+  </body>
+</html>
