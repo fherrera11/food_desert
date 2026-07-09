@@ -14,14 +14,14 @@ from dotenv import load_dotenv
 # CONFIG
 # ============================================================
 
-INPUT_CSV = "input_locations.csv"
+INPUT_CSV = "cleaned_joined_output.csv"
 OUTPUT_JSON = "restaurant_data.json"
 
-# If X/Y are longitude/latitude in WGS84, keep this True.
-# If X/Y are projected coordinates, such as Web Mercator or State Plane, set this False.
+# DisplayX/DisplayY are preferred for actual map point locations.
+# X/Y are preserved as reference fields only.
 USE_LOCATION_BIAS = True
 
-# Search radius around each X/Y coordinate, in meters.
+# Search radius around each DisplayX/DisplayY coordinate, in meters.
 LOCATION_BIAS_RADIUS_METERS = 500.0
 
 # Keep this None for broader matching.
@@ -80,6 +80,7 @@ def normalize_header(value: str) -> str:
     Normalizes headers so these can all be matched:
     USER_current_rating
     USER_current rating
+    USER_Current_Rating
     user current rating
     """
     return (
@@ -128,6 +129,29 @@ def is_probably_lon_lat(x: float | None, y: float | None) -> bool:
     return -180 <= x <= 180 and -90 <= y <= 90
 
 
+def preferred_lon_lat(source: dict[str, Any]) -> tuple[float | None, float | None]:
+    """
+    Preferred coordinate pair for map output, Google location bias, and distance checks.
+
+    Priority:
+    1. DisplayX / DisplayY
+    2. X / Y fallback
+    """
+    display_x_lon = parse_float(source.get("DisplayX"))
+    display_y_lat = parse_float(source.get("DisplayY"))
+
+    if is_probably_lon_lat(display_x_lon, display_y_lat):
+        return display_x_lon, display_y_lat
+
+    x_lon = parse_float(source.get("X"))
+    y_lat = parse_float(source.get("Y"))
+
+    if is_probably_lon_lat(x_lon, y_lat):
+        return x_lon, y_lat
+
+    return None, None
+
+
 def money_to_float(money: dict[str, Any] | None) -> float | None:
     """
     Converts Google's Money object to a float.
@@ -160,11 +184,21 @@ def format_price_range(place: dict[str, Any]) -> tuple[str, str, str, str]:
 
     if start_price is not None and end_price is not None:
         label = f"${start_price:.0f}-${end_price:.0f}"
-        return label, price_bucket_from_range(start_price, end_price), f"{start_price:.0f}", f"{end_price:.0f}"
+        return (
+            label,
+            price_bucket_from_range(start_price, end_price),
+            f"{start_price:.0f}",
+            f"{end_price:.0f}",
+        )
 
     if start_price is not None:
         label = f"${start_price:.0f}+"
-        return label, price_bucket_from_range(start_price, None), f"{start_price:.0f}", ""
+        return (
+            label,
+            price_bucket_from_range(start_price, None),
+            f"{start_price:.0f}",
+            "",
+        )
 
     price_level = place.get("priceLevel", "")
 
@@ -355,28 +389,69 @@ def google_photo_media(photo_name: str) -> dict[str, Any]:
 
 def selected_source_fields(row: dict[str, str], col_lookup: dict[str, str]) -> dict[str, Any]:
     """
-    Pulls only the source columns you said you care about.
-    Handles exact names and common spelling/header variants.
+    Pulls the source columns needed for JSON output.
+
+    DisplayX/DisplayY are the preferred map coordinates.
+    X/Y are preserved as reference fields from the geocoder output.
     """
     match_addr = get_value(row, col_lookup, "Match_addr", "match_addr")
     postal = get_value(row, col_lookup, "Postal", "postal")
+
+    # Original geocoder coordinates/reference fields.
     x = get_value(row, col_lookup, "X", "x")
     y = get_value(row, col_lookup, "Y", "y")
-    facility = get_value(row, col_lookup, "USER_facility", "facility")
+
+    # Preferred display/map coordinates.
+    display_x = get_value(row, col_lookup, "DisplayX", "display_x", "display x")
+    display_y = get_value(row, col_lookup, "DisplayY", "display_y", "display y")
+
+    facility = get_value(
+        row,
+        col_lookup,
+        "USER_facility",
+        "USER_Facility",
+        "facility",
+        "Facility",
+    )
+
     current_rating = get_value(
         row,
         col_lookup,
         "USER_current_rating",
+        "USER_Current_Rating",
         "USER_current rating",
         "current_rating",
+        "Current Rating",
     )
+
     last_inspection_date = get_value(
         row,
         col_lookup,
         "USER_last_inspection_date",
+        "USER_Last_Inspection_Date",
         "USER_last inspection date",
         "last_inspection_date",
+        "Last Inspection Date",
     )
+
+    user_city = get_value(
+        row,
+        col_lookup,
+        "USER_city",
+        "USER_City",
+        "City",
+        "city",
+    )
+
+    user_address = get_value(
+        row,
+        col_lookup,
+        "USER_address",
+        "USER_Address",
+        "Address",
+        "address",
+    )
+
     quality_score = get_value(
         row,
         col_lookup,
@@ -387,11 +462,20 @@ def selected_source_fields(row: dict[str, str], col_lookup: dict[str, str]) -> d
     return {
         "Match_addr": match_addr,
         "Postal": postal,
+
+        # Keep original geocoder X/Y for debugging/reference.
         "X": x,
         "Y": y,
+
+        # Preferred map coordinates.
+        "DisplayX": display_x,
+        "DisplayY": display_y,
+
         "USER_facility": facility,
         "USER_current_rating": current_rating,
         "USER_last_inspection_date": last_inspection_date,
+        "USER_city": user_city,
+        "USER_address": user_address,
         "quality_score": quality_score,
         "quality_label": quality_label_from_score(quality_score),
     }
@@ -402,14 +486,13 @@ def build_feature(
     google_fields: dict[str, Any],
     source_row_number: int,
 ) -> dict[str, Any]:
-    x_lon = parse_float(source.get("X"))
-    y_lat = parse_float(source.get("Y"))
+    map_lon, map_lat = preferred_lon_lat(source)
 
     geometry = None
-    if is_probably_lon_lat(x_lon, y_lat):
+    if is_probably_lon_lat(map_lon, map_lat):
         geometry = {
-            "longitude": x_lon,
-            "latitude": y_lat,
+            "longitude": map_lon,
+            "latitude": map_lat,
             "spatialReference": {"wkid": 4326},
         }
 
@@ -451,15 +534,29 @@ def main() -> None:
 
             match_addr = source["Match_addr"]
             postal = source["Postal"]
-            x_raw = source["X"]
-            y_raw = source["Y"]
             facility = source["USER_facility"]
 
-            city = get_value(row, col_lookup, "City", "USER_city", "city")
-            region = get_value(row, col_lookup, "RegionAbbr", "Region", "USER_state", "state")
+            # Prefer DisplayX/DisplayY for Google location bias and distance checking.
+            # Fall back to X/Y only if DisplayX/DisplayY are missing or invalid.
+            x_lon, y_lat = preferred_lon_lat(source)
 
-            x_lon = parse_float(x_raw)
-            y_lat = parse_float(y_raw)
+            city = get_value(
+                row,
+                col_lookup,
+                "City",
+                "USER_city",
+                "USER_City",
+                "city",
+            )
+
+            region = get_value(
+                row,
+                col_lookup,
+                "RegionAbbr",
+                "Region",
+                "USER_state",
+                "state",
+            )
 
             search_query = build_search_query(
                 facility=facility,
@@ -536,7 +633,10 @@ def main() -> None:
                     is_probably_lon_lat(x_lon, y_lat)
                     and is_probably_lon_lat(google_lng, google_lat)
                 ):
-                    distance_meters = round(haversine_meters(x_lon, y_lat, google_lng, google_lat), 1)
+                    distance_meters = round(
+                        haversine_meters(x_lon, y_lat, google_lng, google_lat),
+                        1,
+                    )
 
                 google_fields.update({
                     "google_status": "OK",
@@ -577,7 +677,11 @@ def main() -> None:
             time.sleep(REQUEST_DELAY_SECONDS)
 
     mapped_count = sum(1 for feature in features if feature.get("geometry"))
-    google_ok_count = sum(1 for feature in features if feature["attributes"].get("google_status") == "OK")
+    google_ok_count = sum(
+        1
+        for feature in features
+        if feature["attributes"].get("google_status") == "OK"
+    )
 
     output_data = {
         "type": "RestaurantInspectionGoogleJoin",
@@ -589,7 +693,10 @@ def main() -> None:
             "feature_count": len(features),
             "mapped_feature_count": mapped_count,
             "google_ok_count": google_ok_count,
-            "coordinate_assumption": "X=longitude, Y=latitude, WGS84/EPSG:4326",
+            "coordinate_assumption": (
+                "DisplayX=longitude, DisplayY=latitude, WGS84/EPSG:4326. "
+                "X/Y are preserved as reference fields and used only as fallback coordinates."
+            ),
             "quality_score_mapping": {
                 "0": "Unsatisfactory",
                 "1": "Satisfactory",
@@ -607,7 +714,7 @@ def main() -> None:
 
     print()
     print(f"Done. Wrote {len(features)} features to: {OUTPUT_JSON}")
-    print(f"Mapped features with valid X/Y: {mapped_count}")
+    print(f"Mapped features with valid DisplayX/DisplayY or fallback X/Y: {mapped_count}")
     print(f"Google OK matches: {google_ok_count}")
 
 

@@ -37,17 +37,120 @@
         z-index: 30;
         display: grid;
         gap: 8px;
-        width: min(500px, calc(100vw - 28px));
+        width: min(560px, calc(100vw - 28px));
       }
 
       .toolbar {
         display: grid;
-        grid-template-columns: 1fr auto auto auto auto auto;
+        grid-template-columns: 1fr auto auto auto;
         gap: 6px;
         background: white;
         border-radius: 12px;
         padding: 8px;
         box-shadow: 0 4px 22px rgba(0, 0, 0, 0.28);
+      }
+
+      .search-input-wrap {
+        position: relative;
+        min-width: 0;
+      }
+
+      .search-suggestions {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        z-index: 80;
+        display: grid;
+        gap: 4px;
+        max-height: 320px;
+        overflow: auto;
+        padding: 6px;
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(8px);
+      }
+
+      .search-suggestions[hidden] {
+        display: none;
+      }
+
+      .search-suggestion {
+        display: grid;
+        grid-template-columns: 44px 1fr auto;
+        gap: 6px;
+        align-items: center;
+        width: 100%;
+        padding: 5px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #fff;
+        box-sizing: border-box;
+        cursor: pointer;
+      }
+
+      .search-suggestion:hover,
+      .search-suggestion:focus {
+        border-color: #8b5cf6;
+        background: #faf5ff;
+        outline: none;
+      }
+
+      .search-suggestion-copy {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .search-suggestion-copy b {
+        font-size: 12px;
+        line-height: 1.2;
+      }
+
+      .search-suggestion-copy span {
+        color: #6b7280;
+        font-size: 11px;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .suggestion-photo {
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        background: #e5e7eb;
+        object-fit: cover;
+      }
+
+      .suggestion-photo-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px;
+        color: #6b7280;
+        font-size: 10px;
+        font-weight: 800;
+        text-align: center;
+        line-height: 1.15;
+      }
+
+      .select-suggestion-button,
+      .zoom-result-button {
+        min-width: auto;
+        padding: 5px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .zoom-result-button {
+        background: #f0f2f5;
+        color: #111827;
+        border: 1px solid #d1d5db;
       }
 
       .compact-card {
@@ -180,12 +283,12 @@
       }
 
       .status {
-        margin-top: 8px;
-        padding: 8px;
-        border-radius: 9px;
+        margin-top: 4px;
+        padding: 5px 7px;
+        border-radius: 8px;
         background: #f5f5f5;
-        font-size: 12px;
-        line-height: 1.35;
+        font-size: 11px;
+        line-height: 1.25;
         white-space: pre-line;
       }
 
@@ -498,13 +601,41 @@
         font-size: 15px;
       }
 
+      .compact-filter-results-summary .info-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 0;
+      }
+
+      .compact-filter-results-summary .metric {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border-radius: 999px;
+        padding: 3px 7px;
+        font-size: 11px;
+        line-height: 1.1;
+        background: #fff;
+      }
+
+      .compact-filter-results-summary .metric b {
+        display: inline;
+        margin-top: 0;
+        font-size: 11px;
+      }
+
       .nearby-list {
         margin-top: 8px;
         display: grid;
-        gap: 6px;
+        gap: 8px;
       }
 
       .nearby-item {
+        display: grid;
+        grid-template-columns: 88px 1fr;
+        align-items: stretch;
+        gap: 10px;
         border: 1px solid #ddd;
         border-radius: 9px;
         padding: 8px;
@@ -518,50 +649,379 @@
       }
 
       .nearby-item.partial-benchmark-match {
-        border-color: #9ca3af;
-        background: #f9fafb;
+        border-color: #f97316;
+        background: #fff7ed;
       }
 
       .nearby-item b {
         font-size: 13px;
       }
 
-      .restaurant-search-card {
+      .results-panel {
         background: white;
         border-radius: 12px;
-        padding: 8px;
+        padding: 12px;
         box-shadow: 0 4px 22px rgba(0, 0, 0, 0.22);
+        box-sizing: border-box;
+        max-height: min(900px, calc(100vh - 28px));
+        overflow-y: auto;
       }
 
-      .restaurant-search-row {
-        display: grid;
-        grid-template-columns: 1fr auto;
+      .results-panel:not(.collapsed) {
+        height: min(900px, calc(100vh - 28px));
+      }
+
+      .results-panel.collapsed {
+        height: auto;
+        max-height: none;
+        overflow: visible;
+      }
+
+      .results-panel.collapsed .results-panel-body {
+        display: none;
+      }
+
+      .results-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .results-header-actions {
+        display: flex;
+        align-items: center;
         gap: 6px;
+        flex-shrink: 0;
+      }
+
+      .filter-toggle-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .filter-glyph {
+        display: inline-flex;
+        width: 14px;
+        height: 14px;
+      }
+
+      .filter-glyph svg {
+        width: 14px;
+        height: 14px;
+        fill: currentColor;
+      }
+
+      .filter-panel {
+        display: none;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 9px;
+        margin-top: 8px;
+      }
+
+      .filter-panel.visible {
+        display: block;
+      }
+
+      .filter-panel-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+
+      .filter-panel-title {
+        font-size: 13px;
+        font-weight: 900;
+        line-height: 1.1;
+      }
+
+      .filter-summary-text {
+        margin-top: 3px;
+        color: #4b5563;
+        font-size: 11px;
+        line-height: 1.3;
+      }
+
+      .filter-hide-button {
+        padding: 5px 8px;
+        min-width: auto;
+        font-size: 12px;
+      }
+
+      .filter-controls-grid {
+        display: grid;
+        gap: 6px;
+      }
+
+      .filter-control label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 2px;
+      }
+
+      .compact-filter-heading {
+        margin: 8px 0 4px;
+      }
+
+      .compact-filter-heading h3 {
+        font-size: 12px;
+      }
+
+      .compact-filter-heading select {
+        min-width: 118px;
+        padding: 5px 7px;
+        font-size: 12px;
+        border-radius: 8px;
+      }
+
+      .compact-slider {
+        gap: 4px;
+      }
+
+      .compact-slider .slider-readout {
+        font-size: 11px;
+      }
+
+      .compact-slider .slider-shell {
+        height: 28px;
+      }
+
+      .compact-slider .range-input {
+        height: 28px;
+      }
+
+      .compact-slider .range-input::-webkit-slider-thumb {
+        width: 20px;
+        height: 20px;
+      }
+
+      .compact-slider .range-input::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+      }
+
+      .compact-slider .slider-ticks {
+        font-size: 9px;
+        margin-top: -4px;
+      }
+
+      .compact-check-row {
+        margin-top: 4px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .filter-note {
+        margin-top: 7px;
+        padding-top: 7px;
+        border-top: 1px solid #e5e7eb;
+        color: #6b7280;
+        font-size: 11px;
+        line-height: 1.3;
+      }
+
+      .risk-index-panel {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 9px;
+      }
+
+      .risk-index-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+
+      .risk-index-title {
+        font-size: 13px;
+        font-weight: 900;
+        line-height: 1.1;
+      }
+
+      .risk-index-subtitle {
+        margin-top: 3px;
+        color: #4b5563;
+        font-size: 11px;
+        line-height: 1.3;
+      }
+
+      .risk-score-card {
+        padding: 10px 12px;
+      }
+
+      .risk-card-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 900;
+        color: #374151;
+      }
+
+      .risk-info-button {
+        vertical-align: middle;
+      }
+
+      .risk-number-row {
+        display: flex;
+        align-items: baseline;
+        gap: 3px;
+      }
+
+      .score-denominator {
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .risk-method-meta {
+        margin-top: 7px;
+        padding-top: 7px;
+        border-top: 1px solid #e5e7eb;
+        color: #4b5563;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      .benchmark-toggle-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-top: 7px;
+      }
+
+      .benchmark-toggle-card {
+        display: grid;
+        gap: 4px;
+        align-content: start;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 7px;
+        background: #f9fafb;
+      }
+
+      .benchmark-toggle-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 900;
+        margin: 0;
+      }
+
+      .benchmark-toggle-row input {
+        margin: 0;
+      }
+
+      .benchmark-info-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        min-width: 18px;
+        border-radius: 999px;
+        padding: 0;
+        background: #e5e7eb;
+        color: #374151;
+        font-size: 11px;
+        font-weight: 900;
+        cursor: help;
+      }
+
+      .benchmark-toggle-note {
+        color: #6b7280;
+        font-size: 11px;
+        line-height: 1.3;
+      }
+
+      .filter-results-summary {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 6px;
+      }
+
+      .filter-results-summary .info-metrics,
+      .risk-index-panel .info-metrics {
+        margin-top: 7px;
+      }
+
+      .compact-filter-results-summary .info-metrics {
+        margin-top: 0;
+      }
+
+      .results-title {
+        font-size: 15px;
+        font-weight: 800;
+      }
+
+      .results-panel-body {
+        display: grid;
+        gap: 4px;
+        margin-top: 6px;
+      }
+
+      .results-section {
+        margin-top: 4px;
+      }
+
+      .results-section-title {
+        font-size: 12px;
+        font-weight: 900;
+        margin: 0 0 4px;
+      }
+
+      .location-search-section {
+        display: grid;
+        gap: 5px;
+      }
+
+      .location-search-title {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+        text-transform: lowercase;
+      }
+
+      .location-match-count {
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 800;
       }
 
       .search-results {
-        display: none;
-        gap: 6px;
-        margin-top: 8px;
-        max-height: 260px;
-        overflow: auto;
-      }
-
-      .search-results.visible {
         display: grid;
+        gap: 4px;
+        margin-top: 0;
+        max-height: 430px;
+        overflow: auto;
       }
 
       .search-result {
         display: grid;
-        gap: 2px;
+        grid-template-columns: 56px 1fr auto;
+        align-items: stretch;
+        gap: 6px;
         width: 100%;
         border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 8px 9px;
+        border-radius: 8px;
+        padding: 5px;
         background: #fff;
         color: #111827;
         text-align: left;
         cursor: pointer;
+        box-sizing: border-box;
       }
 
       .search-result:hover,
@@ -571,14 +1031,117 @@
         outline: none;
       }
 
+      .search-result.selected {
+        border-color: #1f6feb;
+        box-shadow: 0 0 0 1px rgba(31, 111, 235, 0.16);
+      }
+
+      .result-photo,
+      .nearby-photo {
+        width: 56px;
+        height: 56px;
+        border-radius: 8px;
+        background: #e5e7eb;
+        object-fit: cover;
+      }
+
+      .result-photo-placeholder,
+      .nearby-photo-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 700;
+        text-align: center;
+        line-height: 1.25;
+      }
+
+      .search-result-copy,
+      .nearby-copy {
+        min-width: 0;
+        display: grid;
+        gap: 2px;
+      }
+
       .search-result b {
-        font-size: 13px;
+        font-size: 12px;
+        line-height: 1.15;
       }
 
       .search-result span {
         color: #6b7280;
-        font-size: 12px;
-        line-height: 1.3;
+        font-size: 11px;
+        line-height: 1.2;
+      }
+
+      .search-result-meta,
+      .nearby-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+      }
+
+      .result-tag {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 1px 6px;
+        background: #f3f4f6;
+        color: #374151;
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 1.35;
+      }
+
+      .search-result-actions {
+        display: flex;
+        align-items: start;
+      }
+
+      .zoom-result-button {
+        min-width: auto;
+        padding: 5px 7px;
+        border-radius: 7px;
+        background: #f0f2f5;
+        color: #1f2937;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .zoom-result-button:hover,
+      .zoom-result-button:focus {
+        background: #e5e7eb;
+        outline: none;
+      }
+
+      .search-result.non-benchmark-match {
+        border-color: #e5e7eb;
+        background: #fff;
+      }
+
+      .search-results-divider {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 8px;
+        margin: 4px 0;
+        color: #6b7280;
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .search-results-divider span {
+        height: 1px;
+        background: #d1d5db;
+      }
+
+      .compact-empty {
+        padding: 6px 8px;
+        font-size: 11px;
       }
 
       .search-empty {
@@ -587,6 +1150,10 @@
         background: #f9fafb;
         color: #6b7280;
         font-size: 12px;
+      }
+
+      .nearby-actions {
+        margin-top: 2px;
       }
 
       .popup-card {
@@ -630,9 +1197,9 @@
       }
 
       .popup-badge.partial {
-        background: #f3f4f6;
-        color: #4b5563;
-        border: 1px solid #9ca3af;
+        background: #fff7ed;
+        color: #9a3412;
+        border: 1px solid #fb923c;
       }
 
       .popup-badge.none {
@@ -703,7 +1270,6 @@
         display: grid;
         gap: 5px;
         font-size: 12px;
-        margin-top: 8px;
       }
 
       .legend-row {
@@ -727,16 +1293,21 @@
         background: #ffe600;
       }
       .unknown {
-        background: #a0a0a0;
+        background: #ef4444;
       }
       .nearby {
-        background: #ffe600;
+        background: linear-gradient(
+          90deg,
+          #00ff5a 0 33%,
+          #ffe600 33% 66%,
+          #ef4444 66% 100%
+        );
       }
       .match {
         background: #b446ff;
       }
       .partial-match {
-        background: #b4b4b4;
+        background: #f97316;
       }
 
       .divider {
@@ -749,6 +1320,56 @@
         display: flex;
         justify-content: flex-end;
         margin-top: 10px;
+      }
+
+      .legend-card {
+        position: absolute;
+        right: 14px;
+        bottom: 14px;
+        z-index: 30;
+        width: min(290px, calc(100vw - 28px));
+        background: rgba(255, 255, 255, 0.96);
+        border-radius: 12px;
+        padding: 10px;
+        box-shadow: 0 4px 22px rgba(0, 0, 0, 0.22);
+        backdrop-filter: blur(8px);
+        box-sizing: border-box;
+      }
+
+      .legend-card h3 {
+        margin: 0;
+        font-size: 14px;
+      }
+
+      .legend-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .legend-toggle {
+        min-width: auto;
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: #f0f2f5;
+        color: #222;
+        font-size: 11px;
+        line-height: 1;
+      }
+
+      .legend-body {
+        margin-top: 8px;
+      }
+
+      .legend-card.collapsed {
+        width: auto;
+        min-width: 120px;
+        padding: 8px 10px;
+      }
+
+      .legend-card.collapsed .legend-body {
+        display: none;
       }
 
       a {
@@ -764,10 +1385,6 @@
           grid-column: span 1;
         }
 
-        #centerButton {
-          display: none;
-        }
-
         .benchmark-wrap {
           grid-template-columns: 1fr;
         }
@@ -776,6 +1393,48 @@
           width: 100%;
           max-width: 280px;
           justify-self: center;
+        }
+
+        .search-result {
+          grid-template-columns: 64px 1fr;
+        }
+
+        .search-result-actions {
+          grid-column: 2;
+          margin-top: -2px;
+        }
+
+        .nearby-item {
+          grid-template-columns: 72px 1fr;
+        }
+
+        .result-photo {
+          width: 64px;
+          height: 64px;
+        }
+
+        .nearby-photo {
+          width: 72px;
+          height: 72px;
+        }
+
+        .legend-card {
+          right: 14px;
+          left: auto;
+          bottom: 14px;
+          width: min(260px, calc(100vw - 28px));
+          max-height: 42vh;
+          overflow-y: auto;
+        }
+
+        .legend-card.collapsed {
+          width: auto;
+          max-height: none;
+          overflow: visible;
+        }
+
+        .benchmark-toggle-grid {
+          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -786,15 +1445,22 @@
 
     <div class="top-ui">
       <div class="toolbar">
-        <input
-          id="locationInput"
-          type="text"
-          placeholder="Address, place, or lat/lon"
-          autocomplete="off"
-        />
-        <button id="searchButton" title="Find and analyze">Find</button>
-        <button id="centerButton" class="secondary" title="Analyze map center">
-          Center
+        <div class="search-input-wrap">
+          <input
+            id="restaurantSearchInput"
+            type="text"
+            placeholder="Search restaurants by name or address"
+            autocomplete="off"
+          />
+          <div
+            id="searchSuggestionResults"
+            class="search-suggestions"
+            aria-live="polite"
+            hidden
+          ></div>
+        </div>
+        <button id="searchButton" title="Search loaded restaurant data">
+          Search
         </button>
         <button id="pinButton" class="ghost icon" title="Drop pin mode">
           📍
@@ -802,259 +1468,309 @@
         <button
           id="removeSelectionButton"
           class="danger"
-          title="Remove current selection"
+          title="Clear search, selection, and result details"
         >
           Clear
         </button>
-        <button id="settingsButton" class="ghost icon" title="Settings">
-          ⚙
-        </button>
-        <button id="infoButton" class="ghost icon" title="Info">i</button>
       </div>
 
-      <div class="restaurant-search-card">
-        <div class="restaurant-search-row">
-          <input
-            id="restaurantSearchInput"
-            type="text"
-            placeholder="Search restaurants by name or address"
-            autocomplete="off"
-          />
-          <button
-            id="restaurantSearchButton"
-            class="secondary"
-            title="Search loaded restaurant data"
-          >
-            Search
-          </button>
-        </div>
-        <div
-          id="restaurantSearchResults"
-          class="search-results"
-          aria-live="polite"
-        ></div>
-      </div>
-
-      <div id="scoreCard" class="compact-card visible">
+      <div id="scoreCard" class="compact-card visible risk-score-card">
         <div class="score-line">
           <div>
-            <div class="muted">Food desert risk</div>
-            <div id="riskNumber" class="score-number">—</div>
+            <div class="muted risk-card-kicker">
+              Food Desert Risk Index
+              <button
+                type="button"
+                class="benchmark-info-button risk-info-button"
+                title="This score uses the active filters to classify nearby food locations, then calculates one distance-decay qualified-access score. Full matches count as 1.0, partial matches count as 0.5, and farther locations count less using a smooth distance-decay kernel. Food desert risk is 100 minus qualified access."
+                aria-label="Food Desert Risk Index information"
+              >
+                i
+              </button>
+            </div>
+            <div class="risk-number-row">
+              <span id="riskNumber" class="score-number">—</span>
+              <span class="score-denominator">/100</span>
+            </div>
           </div>
           <div id="riskLabel" class="score-label">Select a location</div>
         </div>
         <div id="scoreMeta" class="score-meta">
-          Use Find, Center, or 📍 drop pin.
+          Search for a restaurant or use the pin tool.
         </div>
-
-        <div id="scoreFilterSummary" class="range-filter-summary">
-          <b>Active range filters</b>
-          <div id="activeRangeSummary" class="muted" style="margin-top: 4px">
-            Radius 1 mi · Stars 3.0–4.5 · Inspection satisfactory–good · Price
-            any bucket
-          </div>
+        <div id="riskMethodMeta" class="risk-method-meta">
+          One score: distance-decay qualified access. Filters decide which
+          locations qualify; distance decides how much each one counts.
         </div>
       </div>
 
-      <div id="settingsDrawer" class="drawer">
-        <h2>Settings</h2>
-        <div class="muted">
-          Use direct range filters instead of weights or a radial graph. Drop a
-          pin, then adjust the radius and ranges to find matching food
-          locations.
-        </div>
-
-        <h3>Search radius and target</h3>
-        <div class="settings-grid">
+      <div id="resultsPanel" class="results-panel">
+        <div class="results-header">
           <div>
-            <label for="radiusMiles"
-              >Radius miles:
-              <span id="radiusMilesValue" class="range-value-pill"
-                >1 mi</span
-              ></label
+            <div class="results-title">Results</div>
+            <div id="resultsSubtitle" class="muted">
+              Search for a location to place the analysis pin, or drop a pin
+              manually.
+            </div>
+          </div>
+          <div class="results-header-actions">
+            <button
+              id="settingsButton"
+              class="ghost filter-toggle-button"
+              title="Show or hide filters"
+              aria-expanded="true"
             >
-            <input
-              id="radiusMiles"
-              type="range"
-              min="0.25"
-              max="2"
-              step="0.25"
-              value="1"
-            />
-          </div>
-          <div>
-            <label for="targetLocations">Target matching locations</label>
-            <input
-              id="targetLocations"
-              type="number"
-              min="1"
-              step="1"
-              value="8"
-            />
+              <span class="filter-glyph" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M3 5h18l-7 8v5l-4 2v-7L3 5z"></path>
+                </svg>
+              </span>
+              Filters
+            </button>
+            <button
+              id="toggleResultsButton"
+              class="ghost"
+              title="Collapse or expand the results panel"
+            >
+              Collapse
+            </button>
           </div>
         </div>
 
-        <div class="filter-heading">
-          <h3>Rating filter</h3>
-          <select id="ratingMode" title="Rating filter mode">
-            <option value="range" selected>Range</option>
-            <option value="exact">Exact match</option>
-          </select>
-        </div>
-        <div class="one-track-slider" id="ratingSlider">
-          <div class="slider-readout">
-            <span id="ratingLeftReadout">3.0★</span>
-            <span id="ratingRightReadout">4.5★</span>
-          </div>
-          <div class="slider-shell">
-            <div class="slider-track"></div>
-            <div class="slider-fill" id="ratingSliderFill"></div>
-            <input
-              id="ratingMin"
-              class="range-input range-min"
-              type="range"
-              min="0"
-              max="5"
-              step="0.5"
-              value="3"
-            />
-            <input
-              id="ratingMax"
-              class="range-input range-max"
-              type="range"
-              min="0"
-              max="5"
-              step="0.5"
-              value="4.5"
-            />
-          </div>
-          <div class="slider-ticks">
-            <span>0★</span><span>1★</span><span>2★</span><span>3★</span
-            ><span>4★</span><span>5★</span>
-          </div>
-        </div>
-        <label class="check-row">
-          <input id="allowUnknownRating" type="checkbox" checked />
-          Include unknown Google rating as partial matches
-        </label>
+        <div class="results-panel-body">
+          <div id="settingsDrawer" class="filter-panel visible">
+            <div class="filter-panel-header">
+              <div>
+                <div class="filter-panel-title">Filters</div>
+                <div id="activeRangeSummaryInline" class="filter-summary-text">
+                  Radius 1 mi · Stars 3.0–4.5 · Inspection 1 Satisfactory–2 Good
+                  · Price $0–9–$20+
+                </div>
+              </div>
+              <button id="closeSettingsButton" class="ghost filter-hide-button">
+                Hide
+              </button>
+            </div>
 
-        <div class="filter-heading">
-          <h3>Inspection filter</h3>
-          <select id="inspectionMode" title="Inspection filter mode">
-            <option value="range" selected>Range</option>
-            <option value="exact">Exact match</option>
-          </select>
-        </div>
-        <div class="one-track-slider" id="inspectionSlider">
-          <div class="slider-readout">
-            <span id="inspectionLeftReadout">1 Satisfactory</span>
-            <span id="inspectionRightReadout">2 Good</span>
-          </div>
-          <div class="slider-shell">
-            <div class="slider-track"></div>
-            <div class="slider-fill" id="inspectionSliderFill"></div>
-            <input
-              id="inspectionMin"
-              class="range-input range-min"
-              type="range"
-              min="0"
-              max="2"
-              step="1"
-              value="1"
-            />
-            <input
-              id="inspectionMax"
-              class="range-input range-max"
-              type="range"
-              min="0"
-              max="2"
-              step="1"
-              value="2"
-            />
-          </div>
-          <div class="slider-ticks">
-            <span>0<br />Unsat.</span><span>1<br />Sat.</span
-            ><span>2<br />Good</span>
-          </div>
-        </div>
+            <div class="filter-controls-grid">
+              <div class="filter-control filter-control-full">
+                <label for="radiusMiles">
+                  Radius
+                  <span id="radiusMilesValue" class="range-value-pill"
+                    >1 mi</span
+                  >
+                </label>
+                <input
+                  id="radiusMiles"
+                  type="range"
+                  min="0.25"
+                  max="2"
+                  step="0.25"
+                  value="1"
+                />
+              </div>
+            </div>
 
-        <div class="filter-heading">
-          <h3>Price filter</h3>
-          <select id="priceMode" title="Price filter mode">
-            <option value="range" selected>Range</option>
-            <option value="exact">Exact match</option>
-          </select>
-        </div>
-        <div class="one-track-slider" id="priceSlider">
-          <div class="slider-readout">
-            <span id="priceLeftReadout">$0–9</span>
-            <span id="priceRightReadout">$20+</span>
-          </div>
-          <div class="slider-shell">
-            <div class="slider-track"></div>
-            <div class="slider-fill" id="priceSliderFill"></div>
-            <input
-              id="priceMin"
-              class="range-input range-min"
-              type="range"
-              min="0"
-              max="20"
-              step="10"
-              value="0"
-            />
-            <input
-              id="priceMax"
-              class="range-input range-max"
-              type="range"
-              min="0"
-              max="20"
-              step="10"
-              value="20"
-            />
-          </div>
-          <div class="slider-ticks">
-            <span>$0–9</span><span>$10–19</span><span>$20+</span>
-          </div>
-        </div>
-        <label class="check-row">
-          <input id="allowUnknownPrice" type="checkbox" checked />
-          Include unavailable price as partial matches
-        </label>
-        <div class="muted" style="margin-top: 12px">
-          Purple markers satisfy every selected range. Gray markers are partial
-          matches with an allowed unknown value, such as missing price or Google
-          rating.
-        </div>
+            <div class="filter-heading compact-filter-heading">
+              <h3>Rating</h3>
+              <select id="ratingMode" title="Rating filter mode">
+                <option value="range" selected>Range</option>
+                <option value="exact">Exact match</option>
+              </select>
+            </div>
+            <div class="one-track-slider compact-slider" id="ratingSlider">
+              <div class="slider-readout">
+                <span id="ratingLeftReadout">3.0★</span>
+                <span id="ratingRightReadout">4.5★</span>
+              </div>
+              <div class="slider-shell">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="ratingSliderFill"></div>
+                <input
+                  id="ratingMin"
+                  class="range-input range-min"
+                  type="range"
+                  min="0"
+                  max="5"
+                  step="0.5"
+                  value="3"
+                />
+                <input
+                  id="ratingMax"
+                  class="range-input range-max"
+                  type="range"
+                  min="0"
+                  max="5"
+                  step="0.5"
+                  value="4.5"
+                />
+              </div>
+              <div class="slider-ticks">
+                <span>0★</span><span>1★</span><span>2★</span><span>3★</span
+                ><span>4★</span><span>5★</span>
+              </div>
+            </div>
+            <label class="check-row compact-check-row">
+              <input id="allowUnknownRating" type="checkbox" checked />
+              Unknown Google rating can count as partial
+            </label>
 
-        <div class="close-row">
-          <button id="closeSettingsButton" class="secondary">Close</button>
+            <div class="filter-heading compact-filter-heading">
+              <h3>Inspection</h3>
+              <select id="inspectionMode" title="Inspection filter mode">
+                <option value="range" selected>Range</option>
+                <option value="exact">Exact match</option>
+              </select>
+            </div>
+            <div class="one-track-slider compact-slider" id="inspectionSlider">
+              <div class="slider-readout">
+                <span id="inspectionLeftReadout">1 Satisfactory</span>
+                <span id="inspectionRightReadout">2 Good</span>
+              </div>
+              <div class="slider-shell">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="inspectionSliderFill"></div>
+                <input
+                  id="inspectionMin"
+                  class="range-input range-min"
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="1"
+                  value="1"
+                />
+                <input
+                  id="inspectionMax"
+                  class="range-input range-max"
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="1"
+                  value="2"
+                />
+              </div>
+              <div class="slider-ticks">
+                <span>0<br />Unsat.</span><span>1<br />Sat.</span
+                ><span>2<br />Good</span>
+              </div>
+            </div>
+
+            <div class="filter-heading compact-filter-heading">
+              <h3>Price</h3>
+              <select id="priceMode" title="Price filter mode">
+                <option value="range" selected>Range</option>
+                <option value="exact">Exact match</option>
+              </select>
+            </div>
+            <div class="one-track-slider compact-slider" id="priceSlider">
+              <div class="slider-readout">
+                <span id="priceLeftReadout">$0–9</span>
+                <span id="priceRightReadout">$20+</span>
+              </div>
+              <div class="slider-shell">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="priceSliderFill"></div>
+                <input
+                  id="priceMin"
+                  class="range-input range-min"
+                  type="range"
+                  min="0"
+                  max="20"
+                  step="10"
+                  value="0"
+                />
+                <input
+                  id="priceMax"
+                  class="range-input range-max"
+                  type="range"
+                  min="0"
+                  max="20"
+                  step="10"
+                  value="20"
+                />
+              </div>
+              <div class="slider-ticks">
+                <span>$0–9</span><span>$10–19</span><span>$20+</span>
+              </div>
+            </div>
+            <label class="check-row compact-check-row">
+              <input id="allowUnknownPrice" type="checkbox" checked />
+              Unknown price can count as partial
+            </label>
+
+            <div class="filter-note">
+              Filters only classify result cards: purple = full match, orange =
+              allowed unknown partial match.
+            </div>
+          </div>
+
+          <div id="status" class="status">Initializing...</div>
+
+          <div class="results-section location-search-section">
+            <h3 class="results-section-title location-search-title">
+              <span>location search matches:</span>
+              <span id="locationMatchCount" class="location-match-count"
+                >0 selected</span
+              >
+            </h3>
+
+            <div class="filter-results-summary compact-filter-results-summary">
+              <div class="info-metrics">
+                <div class="metric">Nearby <b id="nearbyCount">—</b></div>
+                <div class="metric">
+                  Matches <b id="benchmarkMatchCount">—</b>
+                </div>
+                <div class="metric">
+                  Inspection <b id="inspectionScore">—</b>
+                </div>
+                <div class="metric">Price <b id="avgPrice">—</b></div>
+                <div class="metric">Google <b id="avgRating">—</b></div>
+              </div>
+            </div>
+
+            <div
+              id="restaurantSearchResults"
+              class="search-results"
+              aria-live="polite"
+            >
+              <div class="search-empty">
+                Choose a location or drop a pin to show filtered results.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div id="infoDrawer" class="drawer">
+      <div id="legacyInfoDrawer" class="drawer" hidden>
         <h2>Info</h2>
-        <div id="status" class="status">Initializing...</div>
+        <div id="legacyStatus" class="status">Initializing...</div>
 
         <h3>Latest analysis</h3>
         <div class="info-metrics">
-          <div class="metric">Nearby locations <b id="nearbyCount">—</b></div>
           <div class="metric">
-            Range matches <b id="benchmarkMatchCount">—</b>
+            Nearby locations <b id="legacyNearbyCount">—</b>
           </div>
-          <div class="metric">Access score <b id="accessScore">—</b></div>
           <div class="metric">
-            Avg. inspection <b id="inspectionScore">—</b>
+            Range matches <b id="legacyBenchmarkMatchCount">—</b>
           </div>
-          <div class="metric">Avg. price <b id="avgPrice">—</b></div>
-          <div class="metric">Avg. Google rating <b id="avgRating">—</b></div>
-          <div class="metric">Match equivalent <b id="weightedCount">—</b></div>
+          <div class="metric">Access score <b id="legacyAccessScore">—</b></div>
           <div class="metric">
-            Avg. benchmark gap <b id="avgProfileDiff">—</b>
+            Avg. inspection <b id="legacyInspectionScore">—</b>
+          </div>
+          <div class="metric">Avg. price <b id="legacyAvgPrice">—</b></div>
+          <div class="metric">
+            Avg. Google rating <b id="legacyAvgRating">—</b>
+          </div>
+          <div class="metric">
+            Qualified option share <b id="legacyWeightedCount">—</b>
+          </div>
+          <div class="metric">
+            Distance-weighted access <b id="legacyAvgProfileDiff">—</b>
           </div>
         </div>
 
         <h3>Nearest locations in radius</h3>
-        <div id="nearbyList" class="nearby-list muted">No analysis yet.</div>
+        <div id="legacyNearbyList" class="nearby-list muted"></div>
 
         <h3>Legend</h3>
         <div class="legend">
@@ -1072,7 +1788,7 @@
           <div class="legend-row">
             <span class="dot nearby"></span
             ><span
-              >Solid green/yellow/gray = inside radius but not a full range
+              >Solid green/yellow/red = inside radius but not a full range
               match</span
             >
           </div>
@@ -1083,7 +1799,8 @@
           <div class="legend-row">
             <span class="dot partial-match"></span
             ><span
-              >Partial unknown match = solid gray, listed with disclaimer</span
+              >Partial unknown match = solid orange, listed with
+              disclaimer</span
             >
           </div>
         </div>
@@ -1097,11 +1814,63 @@
           model directly. Full matches satisfy every selected range and appear
           solid purple. Partial matches satisfy all known ranges but have an
           allowed unknown value, usually missing price or Google rating; they
-          appear solid gray and are flagged in the list.
+          appear solid orange and are flagged in the list.
         </div>
 
         <div class="close-row">
-          <button id="closeInfoButton" class="secondary">Close</button>
+          <button id="legacyCloseInfoButton" class="secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="legendCard" class="legend-card">
+      <div class="legend-header">
+        <h3>Legend</h3>
+        <button
+          id="legendToggleButton"
+          class="legend-toggle"
+          type="button"
+          aria-expanded="true"
+          title="Collapse or expand the legend"
+        >
+          Hide
+        </button>
+      </div>
+      <div id="legendBody" class="legend-body">
+        <div class="legend">
+          <div class="legend-row">
+            <span class="dot good"></span><span>quality_score 2 = Good</span>
+          </div>
+          <div class="legend-row">
+            <span class="dot satisfactory"></span
+            ><span>quality_score 1 = Satisfactory</span>
+          </div>
+          <div class="legend-row">
+            <span class="dot unknown"></span
+            ><span>quality_score 0 = Unsatisfactory / missing</span>
+          </div>
+          <div class="legend-row">
+            <span class="dot nearby"></span
+            ><span
+              >Solid green/yellow/red = inside radius, not a full match</span
+            >
+          </div>
+          <div class="legend-row">
+            <span class="dot match"></span
+            ><span>Purple solid circle = full range match</span>
+          </div>
+          <div class="legend-row">
+            <span class="dot partial-match"></span
+            ><span
+              >Solid orange = partial match with an allowed unknown value</span
+            >
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="muted">
+          This is a custom food-access score, not an official USDA food desert
+          classification. Higher risk means fewer benchmark-matching food
+          locations near the selected point.
         </div>
       </div>
     </div>
@@ -1110,6 +1879,9 @@
       const DATA_URL = "./restaurant_data.json";
       const DEFAULT_CENTER = [-120.482967, 37.302163];
       const DEFAULT_ZOOM = 12;
+      // Smooth distance-decay settings for the one Food Desert Risk Index score.
+      // The score is normalized by total nearby distance weight, so it stays interpretable as 0-100.
+      const DISTANCE_DECAY_FLOOR_MILES = 0.03;
 
       // If ./pin.png exists next to this HTML file, the selected point and hover preview will use it.
       // If it does not exist or fails to load, the app automatically falls back to simple red dots.
@@ -1189,8 +1961,16 @@
         "esri/views/MapView",
         "esri/layers/GraphicsLayer",
         "esri/Graphic",
-      ], function (Map, MapView, GraphicsLayer, GraphicClass) {
+        "esri/layers/VectorTileLayer",
+      ], function (Map, MapView, GraphicsLayer, GraphicClass, VectorTileLayer) {
         Graphic = GraphicClass;
+
+        const labelLayer = new VectorTileLayer({
+          portalItem: {
+            id: "30d6b8271e1849cd9c3042060001f425",
+          },
+          title: "Hybrid Reference Labels",
+        });
 
         restaurantLayer = new GraphicsLayer({ title: "Restaurant locations" });
         highlightLayer = new GraphicsLayer({
@@ -1207,6 +1987,7 @@
         const map = new Map({
           basemap: "satellite",
           layers: [
+            labelLayer,
             restaurantLayer,
             highlightLayer,
             benchmarkLayer,
@@ -1224,8 +2005,10 @@
         });
 
         view.when(async () => {
+          view.ui.move("zoom", "top-right");
           preloadLocalPinImage();
           bindUiEvents();
+          bindLegendEvents();
           updateRangeFilterSummary();
           await loadRestaurantJson();
 
@@ -1252,59 +2035,63 @@
       function bindUiEvents() {
         document
           .getElementById("searchButton")
-          .addEventListener("click", handleLocationSearch);
+          .addEventListener("click", handleRestaurantSearch);
         document
           .getElementById("removeSelectionButton")
           .addEventListener("click", clearAnalysisSelection);
-        document
-          .getElementById("restaurantSearchButton")
-          .addEventListener("click", handleRestaurantSearch);
         document
           .getElementById("restaurantSearchInput")
           .addEventListener("input", handleRestaurantSearchPreview);
         document
           .getElementById("restaurantSearchInput")
           .addEventListener("keydown", handleRestaurantSearchKeydown);
-        document
-          .getElementById("centerButton")
-          .addEventListener("click", () => {
-            if (!view || !view.center) return;
-            setAnalysisPoint(
-              view.center.latitude,
-              view.center.longitude,
-              "Map center",
+        document.getElementById("pinButton").addEventListener("click", () => {
+          setDropPinMode(!dropPinMode);
+          if (!dropPinMode && !currentAnalysisPoint) {
+            setStatus(
+              "Drop pin mode is off. Search for a restaurant or use the pin tool.",
             );
-          });
-        document
-          .getElementById("pinButton")
-          .addEventListener("click", () => setDropPinMode(!dropPinMode));
+          }
+        });
         document
           .getElementById("settingsButton")
           .addEventListener("click", () => toggleDrawer("settingsDrawer"));
         document
-          .getElementById("infoButton")
-          .addEventListener("click", () => toggleDrawer("infoDrawer"));
-        document
           .getElementById("closeSettingsButton")
           .addEventListener("click", () => hideDrawer("settingsDrawer"));
         document
-          .getElementById("closeInfoButton")
-          .addEventListener("click", () => hideDrawer("infoDrawer"));
+          .getElementById("toggleResultsButton")
+          .addEventListener("click", toggleResultsPanel);
         const resetBenchmarkButton = document.getElementById(
           "resetBenchmarkButton",
         );
         if (resetBenchmarkButton) {
           resetBenchmarkButton.addEventListener("click", resetBenchmarkTargets);
         }
-        document
-          .getElementById("locationInput")
-          .addEventListener("keydown", (event) => {
-            if (event.key === "Enter") handleLocationSearch();
-          });
+
+        document.getElementById("pinButton").innerHTML = "&#128205;";
+        setFilterButtonState();
+        document.getElementById("riskNumber").textContent = "--";
+        document.getElementById("scoreMeta").textContent =
+          "Search for a restaurant or use the pin tool.";
+        const riskMethodMeta = document.getElementById("riskMethodMeta");
+        if (riskMethodMeta) {
+          riskMethodMeta.textContent =
+            "One score: distance-decay qualified access. Filters decide which locations qualify; distance decides how much each one counts.";
+        }
+        [
+          "nearbyCount",
+          "benchmarkMatchCount",
+          "inspectionScore",
+          "avgPrice",
+          "avgRating",
+        ].forEach((id) => {
+          const element = document.getElementById(id);
+          if (element) element.textContent = "--";
+        });
 
         const optionIds = [
           "radiusMiles",
-          "targetLocations",
           "ratingMode",
           "ratingMin",
           "ratingMax",
@@ -1332,6 +2119,15 @@
           element.addEventListener("change", handler);
         });
 
+        document
+          .querySelectorAll(".benchmark-info-button")
+          .forEach((button) => {
+            button.addEventListener("click", (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            });
+          });
+
         const svg = document.getElementById("benchmarkChart");
         if (svg) {
           svg.addEventListener("pointermove", handleBenchmarkPointerMove);
@@ -1340,19 +2136,116 @@
           svg.addEventListener("pointercancel", stopBenchmarkDrag);
         }
 
+        setStatus(
+          "Selection removed. Search for a restaurant or use the pin tool.",
+        );
         updateRangeFilterSummary();
+      }
+
+      function bindLegendEvents() {
+        const button = document.getElementById("legendToggleButton");
+        if (button) {
+          button.addEventListener("click", () => toggleLegend());
+        }
+
+        // On narrow screens, start with the legend collapsed so it behaves like the compact results panel.
+        if (
+          window.matchMedia &&
+          window.matchMedia("(max-width: 720px)").matches
+        ) {
+          setLegendCollapsed(true);
+        }
+
+        // When an ArcGIS popup opens, automatically collapse the map overlays.
+        // On mobile this collapses both the results panel and legend; on desktop it keeps only the legend out of the popup's way.
+        if (view?.popup?.watch) {
+          view.popup.watch("visible", (visible) => {
+            if (visible) collapseMapOverlaysForPopup();
+          });
+        }
+      }
+
+      function toggleLegend(forceCollapsed = null) {
+        const card = document.getElementById("legendCard");
+        if (!card) return;
+        const shouldCollapse =
+          typeof forceCollapsed === "boolean"
+            ? forceCollapsed
+            : !card.classList.contains("collapsed");
+        setLegendCollapsed(shouldCollapse);
+      }
+
+      function setLegendCollapsed(collapsed) {
+        const card = document.getElementById("legendCard");
+        const button = document.getElementById("legendToggleButton");
+        if (!card || !button) return;
+        card.classList.toggle("collapsed", Boolean(collapsed));
+        button.textContent = collapsed ? "Show" : "Hide";
+        button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      }
+
+      function isMobileViewport() {
+        return Boolean(
+          window.matchMedia && window.matchMedia("(max-width: 720px)").matches,
+        );
+      }
+
+      function setResultsPanelCollapsed(collapsed) {
+        const panel = document.getElementById("resultsPanel");
+        const button = document.getElementById("toggleResultsButton");
+        if (!panel || !button) return;
+        panel.classList.toggle("collapsed", Boolean(collapsed));
+        button.textContent = collapsed ? "Expand" : "Collapse";
+        button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      }
+
+      function collapseMapOverlaysForPopup() {
+        setLegendCollapsed(true);
+        if (isMobileViewport()) {
+          setResultsPanelCollapsed(true);
+          hideSearchSuggestionResults();
+        }
       }
 
       function toggleDrawer(id) {
         const drawer = document.getElementById(id);
-        const otherId =
-          id === "settingsDrawer" ? "infoDrawer" : "settingsDrawer";
-        hideDrawer(otherId);
-        drawer.classList.toggle("visible");
+        if (!drawer) return;
+        const visible = drawer.classList.toggle("visible");
+        if (visible) {
+          const panel = document.getElementById("resultsPanel");
+          const collapseButton = document.getElementById("toggleResultsButton");
+          if (panel) panel.classList.remove("collapsed");
+          if (collapseButton) collapseButton.textContent = "Collapse";
+        }
+        setFilterButtonState();
       }
 
       function hideDrawer(id) {
-        document.getElementById(id).classList.remove("visible");
+        const drawer = document.getElementById(id);
+        if (drawer) drawer.classList.remove("visible");
+        setFilterButtonState();
+      }
+
+      function setFilterButtonState() {
+        const button = document.getElementById("settingsButton");
+        const drawer = document.getElementById("settingsDrawer");
+        if (!button || !drawer) return;
+        const visible = drawer.classList.contains("visible");
+        button.setAttribute("aria-expanded", visible ? "true" : "false");
+        button.innerHTML = `
+          <span class="filter-glyph" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M3 5h18l-7 8v5l-4 2v-7L3 5z"></path>
+            </svg>
+          </span>
+          ${visible ? "Hide filters" : "Filters"}
+        `;
+      }
+
+      function toggleResultsPanel() {
+        const panel = document.getElementById("resultsPanel");
+        if (!panel) return;
+        setResultsPanelCollapsed(!panel.classList.contains("collapsed"));
       }
 
       function setDropPinMode(enabled) {
@@ -1367,7 +2260,9 @@
             "Drop pin mode is on. Move the mouse over the map, then click to drop the pin.",
           );
         else if (!currentAnalysisPoint)
-          setStatus("Drop pin mode is off. Use Find, Center, or 📍 drop pin.");
+          setStatus(
+            "Drop pin mode is off. Search for a restaurant or use the pin tool.",
+          );
       }
 
       function updateCursorPinFromPointer(event) {
@@ -1438,13 +2333,18 @@
           priceBucketLabel,
         );
 
-        if (summary) {
-          summary.textContent =
-            `Radius ${formatMiles(options.radiusMiles)} mi · ` +
-            `Stars ${formatFilterSummary(options.ratingMode, options.ratingMin, options.ratingMax, formatStars)} · ` +
-            `Inspection ${formatFilterSummary(options.inspectionMode, options.inspectionMin, options.inspectionMax, formatInspectionValue)} · ` +
-            `Price ${formatFilterSummary(options.priceMode, options.priceMin, options.priceMax, priceBucketLabel)}`;
-        }
+        const summaryText =
+          `Radius ${formatMiles(options.radiusMiles)} mi · ` +
+          `Stars ${formatFilterSummary(options.ratingMode, options.ratingMin, options.ratingMax, formatStars)} · ` +
+          `Inspection ${formatFilterSummary(options.inspectionMode, options.inspectionMin, options.inspectionMax, formatInspectionValue)} · ` +
+          `Price ${formatFilterSummary(options.priceMode, options.priceMin, options.priceMax, priceBucketLabel)}`;
+
+        if (summary) summary.textContent = summaryText;
+
+        const inlineSummary = document.getElementById(
+          "activeRangeSummaryInline",
+        );
+        if (inlineSummary) inlineSummary.textContent = summaryText;
       }
 
       function normalizeFilterInputs(changedId) {
@@ -1584,8 +2484,9 @@
           const data = await response.json();
           restaurants = normalizeRestaurantData(data);
           drawRestaurantPoints(restaurants);
+          clearFilteredLocationResults();
           setStatus(
-            `Loaded ${restaurants.length} mappable locations from restaurant_data.json.\nUse Find, Center, or 📍 drop pin to calculate a score. When drop-pin mode is active, a pin follows your mouse.`,
+            `Loaded ${restaurants.length} mappable locations from restaurant_data.json.\nSearch for a restaurant or use the pin tool to calculate a score. When drop-pin mode is active, a pin follows your mouse.`,
           );
           if (restaurants.length > 0 && restaurantLayer.graphics.length > 0) {
             view.goTo(restaurantLayer.graphics.toArray()).catch((error) => {
@@ -1620,6 +2521,7 @@
             Object.assign(attributes, item);
 
           const lon = firstValidNumber([
+            attributes.DisplayX,
             geometry.longitude,
             geometry.x,
             Array.isArray(geometry.coordinates)
@@ -1630,11 +2532,12 @@
             attributes.lng,
             attributes.X,
             attributes.x,
-            attributes.DisplayX,
+
             attributes.displayx,
           ]);
 
           const lat = firstValidNumber([
+            attributes.DisplayY,
             geometry.latitude,
             geometry.y,
             Array.isArray(geometry.coordinates)
@@ -1644,7 +2547,7 @@
             attributes.lat,
             attributes.Y,
             attributes.y,
-            attributes.DisplayY,
+
             attributes.displayy,
           ]);
 
@@ -1855,7 +2758,11 @@
         const query = document
           .getElementById("restaurantSearchInput")
           .value.trim();
-        renderRestaurantSearchResults(query, findRestaurantMatches(query, 8));
+        if (!query) {
+          hideSearchSuggestionResults();
+          return;
+        }
+        renderSearchSuggestionResults(query, findRestaurantMatches(query, 12));
       }
 
       function handleRestaurantSearchKeydown(event) {
@@ -1864,44 +2771,132 @@
           handleRestaurantSearch();
         }
         if (event.key === "Escape") {
-          hideRestaurantSearchResults();
+          hideSearchSuggestionResults();
         }
       }
 
       function handleRestaurantSearch() {
         const input = document.getElementById("restaurantSearchInput");
         const query = input.value.trim();
-        const matches = findRestaurantMatches(query, 10);
-        renderRestaurantSearchResults(query, matches);
 
         if (!query) {
+          hideSearchSuggestionResults();
           setStatus(
-            "Enter a restaurant name or address to search the loaded data.",
+            "Type a restaurant name or address, then select a search suggestion to place the analysis pin.",
           );
           return;
         }
 
+        const matches = findRestaurantMatches(query, 12);
+        renderSearchSuggestionResults(query, matches);
+
         if (matches.length === 0) {
-          setStatus(`No loaded restaurant matched: ${query}`);
+          setStatus(`No loaded location matched: ${query}`);
           return;
         }
 
         if (matches.length === 1) {
-          selectRestaurantSearchResult(matches[0].searchIndex);
+          setStatus(
+            `Found 1 search suggestion for: ${query}. Use Select to place the analysis pin.`,
+          );
           return;
         }
 
         setStatus(
-          `Found ${matches.length} loaded restaurant matches for: ${query}\nSelect one from the search results.`,
+          `Found ${matches.length} search suggestion(s) for: ${query}. Use Select to place the analysis pin.`,
         );
       }
 
-      function findRestaurantMatches(query, limit = 8) {
+      function renderSearchSuggestionResults(query, matches) {
+        const container = document.getElementById("searchSuggestionResults");
+        if (!container) return;
+
+        if (!query) {
+          hideSearchSuggestionResults();
+          return;
+        }
+
+        container.hidden = false;
+
+        if (!matches.length) {
+          container.innerHTML = `<div class="search-empty">No loaded location matched this search.</div>`;
+          return;
+        }
+
+        container.innerHTML = matches
+          .map((item) => {
+            const name = restaurantDisplayName(item);
+            const address =
+              restaurantDisplayAddress(item) || "Address unavailable";
+            return `
+              <div
+                class="search-suggestion"
+                data-restaurant-index="${item.searchIndex}"
+                role="button"
+                tabindex="0"
+                title="Select ${escapeHtml(name)} as the analysis location"
+              >
+                ${restaurantResultPhotoMarkup(item.attributes, name, "suggestion-photo")}
+                <div class="search-suggestion-copy">
+                  <b>${escapeHtml(name)}</b>
+                  <span>${escapeHtml(address)}</span>
+                </div>
+                <button
+                  type="button"
+                  class="select-suggestion-button"
+                  data-restaurant-index="${item.searchIndex}"
+                  title="Select ${escapeHtml(name)} as the analysis location"
+                >
+                  Select
+                </button>
+              </div>
+            `;
+          })
+          .join("");
+
+        container
+          .querySelectorAll(".select-suggestion-button")
+          .forEach((button) => {
+            button.addEventListener("click", (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              selectRestaurantSearchResult(
+                Number(button.dataset.restaurantIndex),
+              );
+            });
+            button.addEventListener("keydown", (event) => {
+              event.stopPropagation();
+            });
+          });
+
+        container.querySelectorAll(".search-suggestion").forEach((row) => {
+          row.addEventListener("click", () => {
+            selectRestaurantSearchResult(Number(row.dataset.restaurantIndex));
+          });
+          row.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              selectRestaurantSearchResult(Number(row.dataset.restaurantIndex));
+            }
+          });
+        });
+      }
+
+      function hideSearchSuggestionResults() {
+        const container = document.getElementById("searchSuggestionResults");
+        if (!container) return;
+        container.hidden = true;
+        container.innerHTML = "";
+      }
+
+      function findRestaurantMatches(query, limit = Infinity) {
         const normalizedQuery = normalizeSearchText(query);
-        if (!normalizedQuery) return [];
+        if (!normalizedQuery) {
+          return restaurants.map((item) => ({ ...item, searchScore: 0 }));
+        }
         const tokens = normalizedQuery.split(" ").filter(Boolean);
 
-        return restaurants
+        const matches = restaurants
           .map((item) => {
             const name = restaurantDisplayName(item);
             const address = restaurantDisplayAddress(item);
@@ -1934,67 +2929,180 @@
             return restaurantDisplayName(a).localeCompare(
               restaurantDisplayName(b),
             );
-          })
-          .slice(0, limit);
+          });
+
+        return Number.isFinite(limit) ? matches.slice(0, limit) : matches;
       }
 
-      function renderRestaurantSearchResults(query, matches) {
+      function renderFilteredLocationResults(nearby) {
         const container = document.getElementById("restaurantSearchResults");
         if (!container) return;
 
-        if (!query) {
-          hideRestaurantSearchResults();
+        const nearbyItems = [...(nearby || [])];
+        const matchedItems = nearbyItems
+          .filter((item) => item.benchmarkMatch)
+          .sort((a, b) => {
+            const aRank = a.benchmarkMatchType === "full" ? 0 : 1;
+            const bRank = b.benchmarkMatchType === "full" ? 0 : 1;
+            if (aRank !== bRank) return aRank - bRank;
+            return a.distanceMiles - b.distanceMiles;
+          });
+        const nonMatchedItems = nearbyItems
+          .filter((item) => !item.benchmarkMatch)
+          .sort((a, b) => a.distanceMiles - b.distanceMiles);
+
+        const countElement = document.getElementById("locationMatchCount");
+        if (countElement) {
+          countElement.textContent = `${nearbyItems.length} shown · ${matchedItems.length} match · ${nonMatchedItems.length} non-match`;
+        }
+
+        if (!currentAnalysisPoint) {
+          container.innerHTML = `<div class="search-empty">Choose a location from the search suggestions or drop a pin to show nearby locations.</div>`;
           return;
         }
 
-        container.classList.add("visible");
-
-        if (!matches.length) {
-          container.innerHTML = `<div class="search-empty">No matches found in the loaded restaurant data.</div>`;
+        if (!nearbyItems.length) {
+          container.innerHTML = `<div class="search-empty">No locations found inside the selected radius.</div>`;
           return;
         }
 
-        container.innerHTML = matches
-          .map((item) => {
-            const name = restaurantDisplayName(item);
-            const address =
-              restaurantDisplayAddress(item) || "Address unavailable";
-            const rating = clean(item.attributes.google_rating || "");
-            const price = clean(
-              item.attributes.google_price_label ||
-                item.attributes.google_price_bucket ||
-                "",
-            );
-            const quality =
-              qualityLabelFromScore(item.attributes.quality_score) ||
-              "Unknown inspection";
-            const details = [quality, rating ? `${rating}★` : "", price]
-              .filter(Boolean)
-              .join(" · ");
-            return `
-              <button type="button" class="search-result" data-restaurant-index="${item.searchIndex}">
+        const cardMarkup = (item) => {
+          const a = item.attributes || {};
+          const name = restaurantDisplayName(item);
+          const address =
+            restaurantDisplayAddress(item) || "Address unavailable";
+          const quality =
+            qualityLabelFromScore(a.quality_score) ||
+            clean(a.quality_label || a.USER_current_rating) ||
+            "Unknown inspection";
+          const rating = clean(a.google_rating || "");
+          const price = clean(
+            a.google_price_label || a.google_price_bucket || "",
+          );
+          const miles = Number.isFinite(item.distanceMiles)
+            ? `${item.distanceMiles.toFixed(2)} mi`
+            : "";
+          const matchLabel =
+            item.benchmarkMatchType === "full"
+              ? "Full match"
+              : item.benchmarkMatchType === "partial"
+                ? "Partial match"
+                : "Does not match filters";
+          const tags = [
+            matchLabel,
+            miles,
+            quality,
+            rating ? `${rating} stars` : "",
+            price,
+          ].filter(Boolean);
+          const itemClass =
+            item.benchmarkMatchType === "full"
+              ? "benchmark-match"
+              : item.benchmarkMatchType === "partial"
+                ? "partial-benchmark-match"
+                : "non-benchmark-match";
+
+          return `
+            <div class="search-result ${itemClass}" data-restaurant-index="${item.searchIndex}">
+              ${restaurantResultPhotoMarkup(a, name, "result-photo")}
+              <div class="search-result-copy">
                 <b>${escapeHtml(name)}</b>
                 <span>${escapeHtml(address)}</span>
-                ${details ? `<span>${escapeHtml(details)}</span>` : ""}
-              </button>
-            `;
-          })
-          .join("");
+                <div class="search-result-meta">
+                  ${tags
+                    .map(
+                      (tag) =>
+                        `<span class="result-tag">${escapeHtml(tag)}</span>`,
+                    )
+                    .join("")}
+                </div>
+              </div>
+              <div class="search-result-actions">
+                <button
+                  type="button"
+                  class="zoom-result-button"
+                  data-restaurant-index="${item.searchIndex}"
+                  title="Zoom to ${escapeHtml(name)}"
+                >
+                  Zoom
+                </button>
+              </div>
+            </div>
+          `;
+        };
 
-        container.querySelectorAll(".search-result").forEach((button) => {
-          button.addEventListener("click", () => {
-            selectRestaurantSearchResult(
+        const matchedMarkup = matchedItems.length
+          ? matchedItems.map(cardMarkup).join("")
+          : `<div class="search-empty compact-empty">No full or partial matches for the active filters.</div>`;
+
+        const dividerMarkup = `
+          <div class="search-results-divider" role="separator" aria-label="Non-matching nearby locations">
+            <span></span>
+            <b>Remaining nearby locations that do not match</b>
+            <span></span>
+          </div>
+        `;
+
+        const nonMatchedMarkup = nonMatchedItems.length
+          ? nonMatchedItems.map(cardMarkup).join("")
+          : `<div class="search-empty compact-empty">No non-matching nearby locations inside the selected radius.</div>`;
+
+        // Single flat results list only: matched cards, one divider, then non-matching cards.
+        // Do not render a second nearby-list container.
+        container.innerHTML = `${matchedMarkup}${dividerMarkup}${nonMatchedMarkup}`;
+
+        container.querySelectorAll(".zoom-result-button").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            zoomToRestaurantSearchResult(
               Number(button.dataset.restaurantIndex),
             );
+          });
+          button.addEventListener("keydown", (event) => {
+            event.stopPropagation();
           });
         });
       }
 
-      function hideRestaurantSearchResults() {
+      function clearFilteredLocationResults() {
         const container = document.getElementById("restaurantSearchResults");
-        if (!container) return;
-        container.classList.remove("visible");
-        container.innerHTML = "";
+        if (container) {
+          container.innerHTML = `<div class="search-empty">Choose a location from the search suggestions or drop a pin to show filter-selected results.</div>`;
+        }
+        const countElement = document.getElementById("locationMatchCount");
+        if (countElement) countElement.textContent = "0 selected";
+      }
+
+      function restaurantResultPhotoMarkup(attributes, name, className) {
+        const photoUri = clean(attributes?.google_photo_uri || "");
+        if (photoUri) {
+          return `<img class="${className}" src="${escapeHtml(photoUri)}" alt="Photo of ${escapeHtml(name)}" loading="lazy" />`;
+        }
+        return `<div class="${className} ${className}-placeholder">No image available</div>`;
+      }
+
+      function zoomToRestaurantSearchResult(searchIndex) {
+        const item = restaurants.find(
+          (restaurant) => restaurant.searchIndex === searchIndex,
+        );
+        if (!item || !view || !item.graphic) return;
+
+        // Zoom-only behavior: do not select the item, do not move the analysis pin,
+        // and do not turn drop-pin mode on/off.
+        view
+          .goTo({
+            target: item.graphic.geometry,
+            zoom: Math.max(view.zoom || DEFAULT_ZOOM, 17),
+          })
+          .catch((error) => {
+            if (error.name !== "AbortError") console.error(error);
+          });
+
+        window.setTimeout(() => openRestaurantPopup(item), 200);
+        setStatus(
+          `Zoomed to: ${restaurantDisplayName(item)}. Current selected location was not changed.`,
+        );
       }
 
       function selectRestaurantSearchResult(searchIndex) {
@@ -2005,7 +3113,8 @@
 
         const name = restaurantDisplayName(item);
         document.getElementById("restaurantSearchInput").value = name;
-        hideRestaurantSearchResults();
+        hideSearchSuggestionResults();
+        setDropPinMode(false);
         setAnalysisPoint(item.lat, item.lon, name);
 
         if (view && item.graphic) {
@@ -2024,6 +3133,7 @@
 
       function openRestaurantPopup(item) {
         if (!view || !item?.graphic) return;
+        collapseMapOverlaysForPopup();
         const popupOptions = {
           features: [item.graphic],
           location: item.graphic.geometry,
@@ -2061,6 +3171,7 @@
       }
 
       async function handleLocationSearch() {
+        return handleRestaurantSearch();
         const input = document.getElementById("locationInput").value.trim();
         if (!input) {
           setStatus(
@@ -2119,34 +3230,35 @@
         resetRestaurantPointStyles();
         clearCursorPin();
 
-        const locationInput = document.getElementById("locationInput");
-        if (locationInput) locationInput.value = "";
+        const searchInput = document.getElementById("restaurantSearchInput");
+        if (searchInput) searchInput.value = "";
+        hideSearchSuggestionResults();
+        clearFilteredLocationResults();
+        setResultsSubtitle(
+          "Search for a location to place the analysis pin, or drop a pin manually.",
+        );
 
-        document.getElementById("riskNumber").textContent = "—";
+        document.getElementById("riskNumber").textContent = "--";
         document.getElementById("riskLabel").textContent = "Select a location";
         document.getElementById("scoreMeta").textContent =
-          "Use Find, Center, 📍 drop pin, or restaurant search.";
+          "Search for a restaurant or use the pin tool.";
+        const riskMethodMeta = document.getElementById("riskMethodMeta");
+        if (riskMethodMeta) {
+          riskMethodMeta.textContent =
+            "One score: distance-decay qualified access. Filters decide which locations qualify; distance decides how much each one counts.";
+        }
 
         const metricFallbacks = {
-          nearbyCount: "—",
-          benchmarkMatchCount: "—",
-          accessScore: "—",
-          inspectionScore: "—",
-          avgPrice: "—",
-          avgRating: "—",
-          weightedCount: "—",
-          avgProfileDiff: "—",
+          nearbyCount: "--",
+          benchmarkMatchCount: "--",
+          inspectionScore: "--",
+          avgPrice: "--",
+          avgRating: "--",
         };
         Object.entries(metricFallbacks).forEach(([id, value]) => {
           const element = document.getElementById(id);
           if (element) element.textContent = value;
         });
-
-        const nearbyList = document.getElementById("nearbyList");
-        if (nearbyList) {
-          nearbyList.className = "nearby-list muted";
-          nearbyList.innerHTML = "No analysis yet.";
-        }
 
         if (view) {
           if (typeof view.closePopup === "function") view.closePopup();
@@ -2155,7 +3267,7 @@
         }
 
         setStatus(
-          "Selection removed. Use Find, Center, 📍 drop pin, or restaurant search.",
+          "Selection removed. Search for a restaurant or use the pin tool.",
         );
         updateRangeFilterSummary();
       }
@@ -2168,8 +3280,6 @@
           return;
         }
         currentAnalysisPoint = { lat, lon, label };
-        document.getElementById("locationInput").value =
-          `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
         if (view) {
           view
             .goTo({
@@ -2180,6 +3290,9 @@
               if (error.name !== "AbortError") console.error(error);
             });
         }
+        setResultsSubtitle(
+          `Selected point: ${label || `${lat.toFixed(4)}, ${lon.toFixed(4)}`}. Filters update the nearby result cards below.`,
+        );
         analyzeCurrentPoint();
       }
 
@@ -2279,7 +3392,6 @@
         normalizeFilterInputs(null);
 
         const radiusMiles = Math.max(0.25, getNumber("radiusMiles", 1));
-        const targetLocations = Math.max(1, getNumber("targetLocations", 8));
 
         const ratingMode =
           document.getElementById("ratingMode")?.value || "range";
@@ -2327,7 +3439,6 @@
 
         return {
           radiusMiles,
-          targetLocations,
           idealPrice,
           highPrice,
           ratingMode,
@@ -2355,6 +3466,12 @@
             affordabilityScore: 0,
             popularityScore: 0,
             weightedCount: 0,
+            qualifiedEquivalentCount: 0,
+            qualifiedOptionShare: 0,
+            qualifiedOptionShareAccessScore: 0,
+            distanceWeightedAccessRaw: 0,
+            distanceWeightedAccessTotal: 0,
+            distanceWeightedAccessScore: 0,
             avgInspection: null,
             avgPrice: null,
             avgRating: null,
@@ -2389,9 +3506,6 @@
         const avgRating = averageNullable(
           nearby.map((item) => parseNumber(item.attributes.google_rating)),
         );
-        const avgProfileDiff = averageNullable(
-          nearby.map((item) => item.profileDifference),
-        );
 
         const benchmarkMatchCount = nearby.filter(
           (item) => item.benchmarkMatch,
@@ -2406,16 +3520,63 @@
           (item) => item.benchmarkHighlighted,
         ).length;
 
-        // The active range filters are now the scoring model.
-        // Full range matches count as 1.0 and partial matches with an allowed unknown value count as 0.5.
-        // The target count controls how many range-fitting locations are considered adequate access.
-        const matchEquivalentCount =
-          benchmarkFullMatchCount + benchmarkPartialMatchCount * 0.5;
-        const accessScore = clamp(
-          (matchEquivalentCount / options.targetLocations) * 100,
+        const qualifiedEquivalentCount = nearby.reduce(
+          (sum, item) => sum + matchWeightForRisk(item),
+          0,
+        );
+
+        const qualifiedOptionShare =
+          nearby.length === 0 ? 0 : qualifiedEquivalentCount / nearby.length;
+        const qualifiedOptionShareAccessScore = clamp(
+          qualifiedOptionShare * 100,
           0,
           100,
         );
+
+        // One index score: a normalized distance-decay qualified-access score.
+        // Full match = 1.0, partial match = 0.5, non-match = 0.
+        // Each nearby location is weighted by a smooth kernel so closer places count more.
+        // Normalizing by the total nearby distance weight keeps the score bounded and easy to read:
+        // 0 = no nearby weighted access qualifies; 100 = all nearby weighted access qualifies.
+        const radiusMiles = Math.max(
+          options.radiusMiles || 1,
+          DISTANCE_DECAY_FLOOR_MILES,
+        );
+        const bandwidthMiles = Math.max(
+          radiusMiles / 2,
+          DISTANCE_DECAY_FLOOR_MILES,
+        );
+
+        const distanceWeightedAccess = nearby.reduce(
+          (acc, item) => {
+            const distanceMiles = Math.max(
+              item.distanceMiles || 0,
+              DISTANCE_DECAY_FLOOR_MILES,
+            );
+            const distanceKernel = Math.exp(
+              -Math.pow(distanceMiles / bandwidthMiles, 2),
+            );
+            const matchWeight = matchWeightForRisk(item);
+
+            acc.qualified += matchWeight * distanceKernel;
+            acc.total += distanceKernel;
+            return acc;
+          },
+          { qualified: 0, total: 0 },
+        );
+
+        const distanceWeightedAccessScore =
+          distanceWeightedAccess.total <= 0
+            ? 0
+            : clamp(
+                (distanceWeightedAccess.qualified /
+                  distanceWeightedAccess.total) *
+                  100,
+                0,
+                100,
+              );
+
+        const accessScore = distanceWeightedAccessScore;
         const riskScore = clamp(100 - accessScore, 0, 100);
 
         return {
@@ -2426,16 +3587,28 @@
           inspectionScore: avgInspection,
           affordabilityScore: avgAffordability,
           popularityScore: avgPopularity,
-          weightedCount: matchEquivalentCount,
+          weightedCount: distanceWeightedAccess.qualified,
+          qualifiedEquivalentCount,
+          qualifiedOptionShare,
+          qualifiedOptionShareAccessScore,
+          distanceWeightedAccessRaw: distanceWeightedAccess.qualified,
+          distanceWeightedAccessTotal: distanceWeightedAccess.total,
+          distanceWeightedAccessScore,
           avgInspection,
           avgPrice,
           avgRating,
-          avgProfileDiff,
+          avgProfileDiff: null,
           benchmarkMatchCount,
           benchmarkFullMatchCount,
           benchmarkPartialMatchCount,
           benchmarkHighlightedCount,
         };
+      }
+
+      function matchWeightForRisk(item) {
+        if (item?.benchmarkMatchType === "full") return 1;
+        if (item?.benchmarkMatchType === "partial") return 0.5;
+        return 0;
       }
 
       function rangeFilterMatch(restaurant, options) {
@@ -3035,7 +4208,7 @@
         return {
           type: "simple-marker",
           style: "circle",
-          color: [180, 180, 180, 1],
+          color: [249, 115, 22, 1],
           size: 21,
           outline: { color: [0, 0, 0, 1], width: 3 },
         };
@@ -3121,95 +4294,72 @@
         ).toString();
         document.getElementById("riskLabel").textContent = result.riskLabel;
         document.getElementById("scoreMeta").textContent =
-          `${nearby.length} location(s) within ${options.radiusMiles} mi` +
-          ` · ${result.benchmarkFullMatchCount} full + ${result.benchmarkPartialMatchCount} partial range match(es)` +
-          ` · Range access ${Math.round(result.accessScore)}/100`;
+          `${nearby.length} nearby location(s) within ${formatMiles(options.radiusMiles)} mi` +
+          ` · ${result.benchmarkFullMatchCount} full + ${result.benchmarkPartialMatchCount} partial match(es)` +
+          ` · Qualified access ${Math.round(result.accessScore)}/100`;
+
+        const riskMethodMeta = document.getElementById("riskMethodMeta");
+        if (riskMethodMeta) {
+          const weightedQualified = result.distanceWeightedAccessRaw ?? 0;
+          const weightedTotal = result.distanceWeightedAccessTotal ?? 0;
+          riskMethodMeta.textContent =
+            `Distance-decay qualified access: ${Math.round(result.accessScore)}/100 ` +
+            `(${weightedQualified.toFixed(2)} / ${weightedTotal.toFixed(2)} weighted nearby access).`;
+        }
       }
 
       function updateInfoUi(result, nearby, options) {
-        document.getElementById("nearbyCount").textContent =
-          nearby.length.toString();
-        document.getElementById("benchmarkMatchCount").textContent =
-          `${result.benchmarkFullMatchCount} full + ${result.benchmarkPartialMatchCount} partial`;
-        document.getElementById("accessScore").textContent =
-          `${Math.round(result.accessScore)}/100`;
-        document.getElementById("inspectionScore").textContent =
-          `${Math.round(result.inspectionScore)}/100`;
-        document.getElementById("avgPrice").textContent =
+        setElementText("nearbyCount", nearby.length.toString());
+        setElementText(
+          "benchmarkMatchCount",
+          `${result.benchmarkFullMatchCount} full + ${result.benchmarkPartialMatchCount} partial`,
+        );
+        setElementText(
+          "inspectionScore",
+          result.inspectionScore === null ||
+            result.inspectionScore === undefined
+            ? "Unknown"
+            : `${Math.round(result.inspectionScore)}/100`,
+        );
+        setElementText(
+          "avgPrice",
           result.avgPrice === null
             ? "Unknown"
-            : `$${result.avgPrice.toFixed(0)}`;
-        document.getElementById("avgRating").textContent =
-          result.avgRating === null ? "Unknown" : result.avgRating.toFixed(1);
-        document.getElementById("weightedCount").textContent =
-          result.weightedCount.toFixed(1);
-        document.getElementById("avgProfileDiff").textContent =
-          result.avgProfileDiff === null
-            ? "—"
-            : `${result.avgProfileDiff.toFixed(1)} unit gap`;
-        setStatus(
-          `Analysis point: ${currentAnalysisPoint.lat.toFixed(6)}, ${currentAnalysisPoint.lon.toFixed(6)}\n` +
-            `Radius: ${options.radiusMiles} mi | Nearby: ${nearby.length} | Range matches: ${result.benchmarkMatchCount}\n` +
-            `Food desert risk: ${Math.round(result.riskScore)}/100 (${result.riskLabel})`,
+            : `$${result.avgPrice.toFixed(0)}`,
         );
-        updateNearbyList(nearby);
+        setElementText(
+          "avgRating",
+          result.avgRating === null ? "Unknown" : result.avgRating.toFixed(1),
+        );
+
+        setStatus(
+          `Radius ${formatMiles(options.radiusMiles)} mi · Nearby ${nearby.length} · Matches ${result.benchmarkFullMatchCount} full + ${result.benchmarkPartialMatchCount} partial · Risk ${Math.round(result.riskScore)}/100`,
+        );
+        setResultsSubtitle(
+          `${nearby.length} nearby location(s) within ${formatMiles(options.radiusMiles)} mi. Filters classify locations; the Food Desert Risk Index uses one distance-decay qualified-access score.`,
+        );
+        renderFilteredLocationResults(nearby);
       }
 
       function updateNearbyList(nearby) {
-        const container = document.getElementById("nearbyList");
-        if (nearby.length === 0) {
-          container.className = "nearby-list muted";
-          container.innerHTML =
-            "No food locations found inside the selected radius.";
-          return;
-        }
-        container.className = "nearby-list";
-        container.innerHTML = nearby
-          .slice(0, 14)
-          .map((item) => {
-            const a = item.attributes;
-            const name = escapeHtml(
-              a.USER_facility || a.google_name || "Unnamed location",
-            );
-            const address = escapeHtml(a.Match_addr || a.google_address || "");
-            const rating = clean(a.google_rating) || "—";
-            const reviews = clean(a.google_review_count) || "0";
-            const price = clean(a.google_price_label) || "Price unavailable";
-            const inspection =
-              qualityLabelFromScore(a.quality_score) ||
-              clean(
-                a.quality_label || a.USER_current_rating || a.quality_score,
-              ) ||
-              "Unknown";
-            const miles = item.distanceMiles.toFixed(2);
-            const mapsLink = clean(a.google_maps_uri);
-            const confidenceNote =
-              item.benchmarkMatchType === "partial"
-                ? ` · Partial match; unknown ${escapeHtml((item.benchmarkMissingMetrics || []).join(", "))}`
-                : "";
-            const matchLabel = item.benchmarkMatch
-              ? ` · ${item.benchmarkMatchType === "partial" ? "Partial range match" : "Full range match"}, avg gap ${item.profileDifference} unit(s)${confidenceNote}`
-              : ` · Avg gap ${item.profileDifference} unit(s)`;
-            const itemClass =
-              item.benchmarkMatchType === "full"
-                ? "benchmark-match"
-                : item.benchmarkMatchType === "partial"
-                  ? "partial-benchmark-match"
-                  : "";
-            return `
-            <div class="nearby-item ${itemClass}">
-              <b>${name}</b><br />
-              ${address ? `${address}<br />` : ""}
-              <span>${miles} mi away${escapeHtml(matchLabel)}</span><br />
-              <span>Inspection: ${escapeHtml(inspection)} | Google: ${escapeHtml(rating)} (${escapeHtml(reviews)} reviews) | Price: ${escapeHtml(price)}</span>
-              ${mapsLink ? `<br /><a href="${escapeHtml(mapsLink)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>` : ""}
-            </div>
-          `;
-          })
-          .join("");
+        // Disabled: the active UI intentionally uses only #restaurantSearchResults.
+        // Keeping this no-op prevents any legacy nearby-list renderer from creating a second list.
+      }
+
+      function upgradeNearbyResultCards(container, nearbyItems) {
+        // Disabled with updateNearbyList().
       }
 
       function drawBenchmarkChart() {
+        document
+          .querySelectorAll(".benchmark-info-button")
+          .forEach((button) => {
+            button.addEventListener("click", (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            });
+          });
+
         const svg = document.getElementById("benchmarkChart");
         if (!svg) return;
         const size = 250;
@@ -3295,6 +4445,15 @@
 
       function handleBenchmarkPointerMove(event) {
         if (!dragMetricKey) return;
+        document
+          .querySelectorAll(".benchmark-info-button")
+          .forEach((button) => {
+            button.addEventListener("click", (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            });
+          });
+
         const svg = document.getElementById("benchmarkChart");
         const point = svg.createSVGPoint();
         point.x = event.clientX;
@@ -3425,8 +4584,8 @@
           // Satisfactory inspection = bright yellow.
           color = [255, 230, 0, opacity];
         } else {
-          // Unsatisfactory/missing/other inspection = gray.
-          color = [160, 160, 160, opacity];
+          // Unsatisfactory/missing/other inspection = red.
+          color = [239, 68, 68, opacity];
         }
 
         return {
@@ -3641,6 +4800,16 @@
 
       function escapeSvg(value) {
         return escapeHtml(value);
+      }
+
+      function setElementText(id, value) {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+      }
+
+      function setResultsSubtitle(message) {
+        const element = document.getElementById("resultsSubtitle");
+        if (element) element.textContent = message;
       }
 
       function setStatus(message) {

@@ -1,0 +1,16 @@
+Merced county facility food inspection ratings
+https://apps.co.merced.ca.us/publicapplets/pages/foodinspect/FoodInspect.aspx
+
+input csv file: food_inspection_table.csv
+used python script using pandas to clean data
+removed locations not in merced city and dropped details column
+
+output csv file: output.csv
+
+use arcgis pro to geocode Address
+
+export result as table
+
+add quality score, 0 Unsatisfactory, 1 Satisfactory, and 2 good
+
+run join_google_restaurant_data to add google reviews and price ranges
